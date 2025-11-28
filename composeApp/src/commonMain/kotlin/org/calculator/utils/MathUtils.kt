@@ -148,3 +148,4 @@ fun canvasToCartesian(
     val y = (originY - canvasY) / (step * scale)
     return x to y
 }
+
