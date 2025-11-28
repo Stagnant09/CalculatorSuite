@@ -7,7 +7,7 @@ class ImplicitEvaluator(
 ) {
     fun evaluate(x: Double, y: Double): Float {
         return try {
-            expression.evaluate(mapOf("x" to x, "y" to y)).toFloat()
+            expression.evaluate(Pair(x,y))
         } catch (e: Exception) {
             Float.NaN
         }

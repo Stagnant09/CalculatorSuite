@@ -1,5 +1,7 @@
 package org.calculator.ui.utils
 
+import org.calculator.utils.ImplicitEvaluator
+
 enum class ExpressionType {
     CARTESIAN_Y_X, // y = f(x)
     CARTESIAN_X, // x = c, c is a constant
@@ -17,4 +19,12 @@ enum class ExpressionType {
 class Expression(
     val formula: String,
     val type: ExpressionType
-) {}
+) {
+    override fun toString(): String {
+        return "Expression(formula='$formula', type=$type)"
+    }
+
+    fun evaluate(xy: Pair<Double, Double>) : Float{
+        return ImplicitEvaluator(this).evaluate(xy.first, xy.second)
+    }
+}
