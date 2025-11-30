@@ -7,11 +7,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import org.calculator.nativeLib.ImplicitPlotter
+import org.calculator.ui.utils.Expression
 import org.calculator.utils.cartesianToCanvas
 import kotlin.math.roundToInt
 
 @Composable
-fun MultiCanvas() {
+fun MultiCanvas(
+    expressions: List<Expression>
+) {
     // State for scale and offset
     var scale by remember { mutableStateOf(1f) }
     var offsetX by remember { mutableStateOf(0f) }
@@ -69,16 +73,40 @@ fun MultiCanvas() {
 
     // Custom drawing function for the grid
     val drawExtra: (DrawScope, Float, Float) -> Unit = { scope, originX, originY ->
-        // Example: Draw a red dot at (1,1)
-        val point = cartesianToCanvas(1f, 1f, originX, originY, step, scale)
-        scope.drawCircle(
-            color = Color.Red,
-            radius = 5f,
-            center = Offset(
-                point.first,
-                point.second
+        expressions.forEachIndexed { index, expression ->
+            val plotter = ImplicitPlotter()
+            plotter.setFormula(expression.formula)
+            val bitmapWidth = 500
+            val bitmapHeight = 500
+            val centerX = bitmapWidth / 2f
+            val centerY = bitmapHeight / 2f
+            val bitmap = plotter.evaluateBitmap(
+                width = bitmapWidth,
+                height = bitmapHeight,
+                originX = centerX,
+                originY = centerY,
+                step = step,
+                scale = scale,
+                threshold = 0.1f  // lower threshold for better sampling
             )
-        )
+            for (i in bitmap.indices) {
+                if (bitmap[i] == 0) continue
+                val px = i % 500
+                val py = i / 500
+                val worldX = (px - centerX) / (step * scale)
+                val worldY = (centerY - py) / (step * scale)
+                val coords = cartesianToCanvas(worldX, worldY, originX, originY, 40f, scale)
+                println("Drawing circle at ($worldX, $worldY)")
+                scope.drawCircle(
+                    center = Offset(
+                        coords.first,
+                        coords.second
+                    ),
+                    radius = 0.4f / scale,
+                    color = Color.Blue
+                )
+            }
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {

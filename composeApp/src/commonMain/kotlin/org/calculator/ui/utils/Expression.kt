@@ -1,6 +1,6 @@
 package org.calculator.ui.utils
 
-/*enum class ExpressionType {
+/*ExpressionType {
     CARTESIAN_Y_X, // y = f(x)
     CARTESIAN_X, // x = c, c is a constant
     CARTESIAN_IMPLICIT, // f(x,y) = 0, a*x^n + c = 0 etc.
@@ -16,7 +16,6 @@ package org.calculator.ui.utils
 
 sealed interface Expression {
     val formula: String
-
     data class CartesianYXExpression(
         override val formula: String
     ): Expression
@@ -44,16 +43,25 @@ sealed interface Expression {
     data class ParametricExpression(
         override val formula: String
     ): Expression {
-
+        // formula is written in the form: r(t) = (x(t), y(t))
+        val xFormula: String = formula.split("=").last().removePrefix("(").removeSuffix(")").split(",").first().trim()
+        val yFormula: String = formula.split("=").last().removePrefix("(").removeSuffix(")").split(",").last().trim()
     }
 
     data class PointExpression(
         override val formula: String
-    ): Expression
+    ): Expression {
+        val x: Float = formula.removePrefix("(").removeSuffix(")").split(",").first().trim().toFloat()
+        val y: Float = formula.removePrefix("(").removeSuffix(")").split(",").last().trim().toFloat()
+    }
 
     data class IntegralExpression(
         override val formula: String
-    ): Expression
+    ): Expression { // TODO: Fix
+        val function: String = formula.removePrefix("Integral").removePrefix("(").removeSuffix(")").split(",").first().trim()
+        val lowerLimit: Float = formula.removePrefix("Integral").removePrefix("(").removeSuffix(")").split(",").last().trim().toFloat()
+        val upperLimit: Float = formula.removePrefix("Integral").removePrefix("(").removeSuffix(")").split(",").last().trim().toFloat()
+    }
 
     data class AreaExpression(
         override val formula: String
@@ -61,9 +69,16 @@ sealed interface Expression {
 
     data class VectorExpression(
         override val formula: String
-    ): Expression
+    ): Expression {
+        val x: Float = formula.removePrefix("vec").removePrefix("(").removeSuffix(")").split(",").first().trim().toFloat()
+        val y: Float = formula.removePrefix("vec").removePrefix("(").removeSuffix(")").split(",").last().trim().toFloat()
+    }
 
     data class ArcExpression(
         override val formula: String
-    ): Expression
+    ): Expression {
+        val center: PointExpression = PointExpression(formula.removePrefix("arc").removePrefix("(").removeSuffix(")").split(",").first().trim())
+        val radius: Float = formula.removePrefix("arc").removePrefix("(").removeSuffix(")").split(",").last().trim().toFloat()
+        val angle: Float = formula.removePrefix("arc").removePrefix("(").removeSuffix(")").split(",").last().trim().toFloat()
+    }
 }

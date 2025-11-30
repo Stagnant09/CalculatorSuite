@@ -1,5 +1,6 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.gradle.internal.os.OperatingSystem
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -57,3 +58,52 @@ compose.desktop {
         }
     }
 }
+
+
+
+val buildNativeLib by tasks.registering(Exec::class) {
+    val buildDir = layout.buildDirectory.dir("native").get().asFile
+    val sourceDir = file("src/commonMain/cpp")
+
+    // Ensure build directory exists
+    doFirst { buildDir.mkdirs() }
+
+    // Configure CMake
+    commandLine(
+        "cmake",
+        "-S", sourceDir.absolutePath,
+        "-B", buildDir.absolutePath,
+        "-G", "Visual Studio 17 2022"
+    )
+}
+
+val buildNativeRelease by tasks.registering(Exec::class) {
+    val buildDir = layout.buildDirectory.dir("native").get().asFile
+
+    dependsOn(buildNativeLib)
+
+    commandLine(
+        "cmake",
+        "--build", buildDir.absolutePath,
+        "--config", "Release"
+    )
+}
+
+val copyNativeLib by tasks.registering(Copy::class) {
+    dependsOn(buildNativeRelease)
+
+    from("build/native/Release/implicit_graph.dll")
+    into("src/jvmMain/resources/win32-x86-64/")
+}
+
+tasks.named("jvmProcessResources") {
+    dependsOn(copyNativeLib)
+}
+
+tasks.named("jvmProcessResources") {
+    dependsOn(copyNativeLib)
+}
+tasks.named("jvmRun") {
+    dependsOn(copyNativeLib)
+}
+

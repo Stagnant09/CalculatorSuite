@@ -13,7 +13,7 @@ sealed interface XYContract {
     ) : CustomState
 
     sealed interface Event : CustomEvent {
-
+        data class UpdateFieldInput(val index: Int, val value: String) : Event
     }
 
     sealed interface Effect : CustomEffect {

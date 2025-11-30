@@ -1,9 +1,15 @@
-#include "implicit_graph_core.hpp"
+#include "implicit_graph_core.h"
 #include "exprtk.hpp"
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#ifdef _WIN32
+#define DLL_EXPORT __declspec(dllexport)
+#else
+#define DLL_EXPORT
+#endif
 
 // types from exprtk
 using real_t = double;
@@ -56,7 +62,7 @@ static float evaluate_function(double x, double y) {
 
 extern "C" {
 
-void ig_set_formula(const char* formula) {
+DLL_EXPORT void ig_set_formula(const char* formula) {
     if (!formula) {
         current_formula.clear();
         return;
@@ -64,7 +70,7 @@ void ig_set_formula(const char* formula) {
     setup_expression_internal(std::string(formula));
 }
 
-int ig_evaluate_bitmap(
+DLL_EXPORT int ig_evaluate_bitmap(
     int32_t width,
     int32_t height,
     float originX,

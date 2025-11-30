@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.calculator.ui.components.FunctionField
 import org.calculator.ui.components.MultiCanvas
 
@@ -20,6 +21,7 @@ import org.calculator.ui.components.MultiCanvas
 @Composable
 fun XYScreen(viewModel: XYViewmodel) {
     val showSidePanel = remember { mutableStateOf(false) }
+    val state = viewModel.uiState.collectAsStateWithLifecycle().value
 
     Scaffold(
         topBar = {
@@ -37,11 +39,18 @@ fun XYScreen(viewModel: XYViewmodel) {
             Row(){
                 if(showSidePanel.value){
                     Column(modifier = Modifier.weight(1f)) {
-
+                        state.fieldsInput.forEachIndexed { index, string ->
+                            FunctionField(
+                                value = string,
+                                onValueChange = { viewModel.setEvent(XYContract.Event.UpdateFieldInput(index, string)) }
+                            )
+                        }
                     }
                 }
                 Column(modifier = Modifier.weight(4f)){
-                    MultiCanvas()
+                    MultiCanvas(
+                        state.expressions
+                    )
                 }
             }
         }
