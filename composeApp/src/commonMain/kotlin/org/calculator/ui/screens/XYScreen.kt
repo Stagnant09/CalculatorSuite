@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.calculator.ui.components.CircularColorPicker
 import org.calculator.ui.components.FunctionField
 import org.calculator.ui.components.MultiCanvas
 
@@ -42,17 +43,27 @@ fun XYScreen(viewModel: XYViewmodel) {
                         state.fieldsInput.forEachIndexed { index, string ->
                             FunctionField(
                                 value = string,
-                                onValueChange = { viewModel.setEvent(XYContract.Event.UpdateFieldInput(index, string)) }
+                                color = state.colors[index],
+                                onValueChange = { newValue -> viewModel.setEvent(XYContract.Event.UpdateFieldInput(index, newValue)) },
+                                onColorClick = { viewModel.setEvent(XYContract.Event.SelectFunction(index)) }
                             )
                         }
                     }
                 }
                 Column(modifier = Modifier.weight(4f)){
                     MultiCanvas(
-                        state.expressions
+                        state.expressions,
+                        state.colors
                     )
                 }
             }
         }
+    }
+
+    if (state.selectedFunctionIndex != -1) {
+        CircularColorPicker(
+            onDismissRequest = { viewModel.setEvent(XYContract.Event.SelectFunction(-1)) },
+            onConfirm = { color -> viewModel.setEvent(XYContract.Event.UpdateColor(color)) }
+        )
     }
 }

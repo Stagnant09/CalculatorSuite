@@ -14,7 +14,8 @@ import kotlin.math.roundToInt
 
 @Composable
 fun MultiCanvas(
-    expressions: List<Expression>
+    expressions: List<Expression>,
+    colors: List<Color>
 ) {
     // State for scale and offset
     var scale by remember { mutableStateOf(1f) }
@@ -102,8 +103,8 @@ fun MultiCanvas(
                         coords.first,
                         coords.second
                     ),
-                    radius = 0.4f / scale,
-                    color = Color.Blue
+                    radius = 2f,
+                    color = colors[index]
                 )
             }
         }
