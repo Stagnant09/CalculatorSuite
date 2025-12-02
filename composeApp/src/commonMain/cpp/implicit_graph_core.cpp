@@ -25,6 +25,13 @@ static real_t x_var = 0.0;
 static real_t y_var = 0.0;
 static std::string current_formula = "";
 
+static symbol_table_t symbol_table2;
+static expression_t expression2;
+static parser_t parser2;
+static real_t x_var2 = 0.0;
+static real_t y_var2 = 0.0;
+static std::string current_formula2 = "";
+
 static void setup_expression_internal(const std::string& input_formula) {
     if (input_formula == current_formula) return;
 
@@ -54,10 +61,45 @@ static void setup_expression_internal(const std::string& input_formula) {
     }
 }
 
+static void setup_expression_internal2(const std::string& input_formula) {
+    if (input_formula == current_formula2) return;
+
+    std::string formula_to_compile = input_formula;
+    size_t eq_pos = formula_to_compile.find('=');
+    if (eq_pos != std::string::npos) {
+        std::string lhs = formula_to_compile.substr(0, eq_pos);
+        std::string rhs = formula_to_compile.substr(eq_pos + 1);
+        rhs.erase(0, rhs.find_first_not_of(" \t\n\r"));
+        rhs.erase(rhs.find_last_not_of(" \t\n\r") + 1);
+        formula_to_compile = lhs + " - (" + rhs + ")";
+    }
+
+    symbol_table2.clear();
+    x_var2 = 0.0;
+    y_var2 = 0.0;
+    symbol_table2.add_variable("x", x_var2);
+    symbol_table2.add_variable("y", y_var2);
+    symbol_table2.add_constants();
+
+    expression2.register_symbol_table(symbol_table2);
+    bool successful_parse = parser2.compile(formula_to_compile, expression2);
+    if (successful_parse) {
+        current_formula2 = input_formula;
+    } else {
+        current_formula2.clear();
+    }
+}
+
 static float evaluate_function(double x, double y) {
     x_var = x;
     y_var = y;
     return static_cast<float>(expression.value());
+}
+
+static float evaluate_function2(double x, double y) {
+    x_var2 = x;
+    y_var2 = y;
+    return static_cast<float>(expression2.value());
 }
 
 extern "C" {
@@ -68,6 +110,14 @@ DLL_EXPORT void ig_set_formula(const char* formula) {
         return;
     }
     setup_expression_internal(std::string(formula));
+}
+
+DLL_EXPORT void ig_set_formula2(const char* formula) {
+    if (!formula) {
+        current_formula2.clear();
+        return;
+    }
+    setup_expression_internal2(std::string(formula));
 }
 
 DLL_EXPORT int ig_evaluate_bitmap(
@@ -91,6 +141,29 @@ DLL_EXPORT int ig_evaluate_bitmap(
             double worldY = (originY - py) / (step * scale);
             float f = evaluate_function(worldX, worldY);
             if (std::fabs(f) < threshold) {
+                local[py * width + px] = 1;
+            }
+        }
+    }
+
+    // copy to caller buffer
+    std::copy(local.begin(), local.end(), outBitmap);
+    return 0;
+}
+
+DLL_EXPORT int ig_meet_points_of_f1_f2(int32_t width, int32_t height, float originX, float originY, float step, float scale, float threshold, int32_t* outBitmap) {
+    if (!outBitmap) return -1;
+    if (current_formula.empty() || current_formula2.empty()) return -2; // formula not set / compile failed
+    std::vector<int32_t> local(width * height, 0);
+    const float pixelStep = std::max(1.1f / scale, 1.0f);
+
+    for (int px = 0; px < width; px += static_cast<int>(pixelStep)) {
+        for (int py = 0; py < height; py += static_cast<int>(pixelStep)) {
+            double worldX = (px - originX) / (step * scale);
+            double worldY = (originY - py) / (step * scale);
+            float f = evaluate_function(worldX, worldY);
+            float f2 = evaluate_function2(worldX, worldY);
+            if (std::fabs(f) < threshold && std::fabs(f2) < threshold) {
                 local[py * width + px] = 1;
             }
         }

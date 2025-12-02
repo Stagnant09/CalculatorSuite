@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import org.calculator.nativeLib.ImplicitPlotter
 import org.calculator.ui.utils.Expression
 import org.calculator.utils.cartesianToCanvas
+import org.calculator.utils.drawPoints
 import kotlin.math.roundToInt
 
 @Composable
@@ -88,24 +89,47 @@ fun MultiCanvas(
                 originY = centerY,
                 step = step,
                 scale = scale,
-                threshold = 0.1f  // lower threshold for better sampling
+                threshold = 0.015f  // lower threshold for better sampling
             )
-            for (i in bitmap.indices) {
-                if (bitmap[i] == 0) continue
-                val px = i % 500
-                val py = i / 500
-                val worldX = (px - centerX) / (step * scale)
-                val worldY = (centerY - py) / (step * scale)
-                val coords = cartesianToCanvas(worldX, worldY, originX, originY, 40f, scale)
-                println("Drawing circle at ($worldX, $worldY)")
-                scope.drawCircle(
-                    center = Offset(
-                        coords.first,
-                        coords.second
-                    ),
-                    radius = 2f,
-                    color = colors[index]
-                )
+            drawPoints(
+                points = bitmap,
+                scope = scope,
+                originX = originX,
+                originY = originY,
+                step = step,
+                scale = scale,
+                color = colors[index],
+                centerX = centerX,
+                centerY = centerY
+            )
+            // Find meet points w/ all previous functions
+            if (index > 0) {
+                for (j in 0..<index) {
+                    plotter.setFormula2(expressions[j].formula)
+                    val meetPoints = plotter.meetPoints(
+                        width = bitmapWidth,
+                        height = bitmapHeight,
+                        originX = centerX,
+                        originY = centerY,
+                        step = step,
+                        scale = scale,
+                        threshold = 0.01f  // lower threshold for better sampling
+                    )
+                    drawPoints(
+                        points = meetPoints,
+                        scope = scope,
+                        originX = originX,
+                        originY = originY,
+                        step = step,
+                        scale = scale,
+                        color = Color.Yellow,
+                        centerX = centerX,
+                        centerY = centerY,
+                        radius = 5f,
+                        border = 2f,
+                        borderColor = Color.Black
+                    )
+                }
             }
         }
     }

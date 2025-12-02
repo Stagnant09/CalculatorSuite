@@ -1,6 +1,8 @@
 package org.calculator.utils
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import kotlin.math.abs
 
 /**
@@ -147,5 +149,48 @@ fun canvasToCartesian(
     val x = (canvasX - originX) / (step * scale)
     val y = (originY - canvasY) / (step * scale)
     return x to y
+}
+
+fun drawPoints(
+    points: IntArray,
+    scope: DrawScope,
+    originX: Float,
+    originY: Float,
+    step: Float,
+    scale: Float,
+    color: Color,
+    centerX: Float,
+    centerY: Float,
+    radius: Float = 1.5f,
+    border: Float = 0f,
+    borderColor: Color = Color.Black
+){
+    for (i in points.indices) {
+        if (points[i] == 0) continue
+        val px = i % 500
+        val py = i / 500
+        val worldX = (px - centerX) / (step * scale)
+        val worldY = (centerY - py) / (step * scale)
+        val coords = cartesianToCanvas(worldX, worldY, originX, originY, 40f, scale)
+        println("Drawing circle at ($worldX, $worldY) of radius $radius")
+        if (border > 0f) {
+            scope.drawCircle(
+                center = Offset(
+                    coords.first,
+                    coords.second
+                ),
+                radius = radius + border,
+                color = borderColor
+            )
+        }
+        scope.drawCircle(
+            center = Offset(
+                coords.first,
+                coords.second
+            ),
+            radius = radius,
+            color = color
+        )
+    }
 }
 
