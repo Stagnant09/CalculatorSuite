@@ -89,7 +89,7 @@ fun MultiCanvas(
                 originY = centerY,
                 step = step,
                 scale = scale,
-                threshold = 0.015f  // lower threshold for better sampling
+                threshold = 0.012f  // lower threshold for better sampling
             )
             drawPoints(
                 points = bitmap,
@@ -113,7 +113,7 @@ fun MultiCanvas(
                         originY = centerY,
                         step = step,
                         scale = scale,
-                        threshold = 0.01f  // lower threshold for better sampling
+                        threshold = 0.0000005f  // lower threshold for better sampling
                     )
                     drawPoints(
                         points = meetPoints,
