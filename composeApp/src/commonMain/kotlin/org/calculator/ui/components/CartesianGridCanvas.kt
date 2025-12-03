@@ -20,7 +20,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -54,7 +57,8 @@ fun CartesianGridCanvas(
     onDragStart: (Float, Float, Float, Float) -> Unit,
     onDragEnd: () -> Unit,
     onDrag: (Float, Float, Float, Float) -> Unit,
-    drawExtra: (DrawScope, Float, Float) -> Unit
+    drawExtra: (DrawScope, Float, Float) -> Unit,
+    pointerInputExtra: (Float, Float) -> Unit = { _, _ -> }
 ) {
     val textMeasurer = rememberTextMeasurer()
     val baseTextStyle = TextStyle(
@@ -65,6 +69,17 @@ fun CartesianGridCanvas(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        pointerInputExtra(
+                            event.changes.first().position.x,
+                            event.changes.first().position.y
+                        )
+                    }
+                }
+            }
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { pos ->
