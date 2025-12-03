@@ -2,7 +2,10 @@ package org.calculator.ui.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -14,6 +17,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.calculator.nativeLib.ImplicitPlotter
 import org.calculator.ui.utils.Expression
@@ -34,8 +38,8 @@ fun MultiCanvas(
     val textMeasurer = rememberTextMeasurer()
     val cursorX = remember { mutableStateOf(0f) }
     val cursorY = remember { mutableStateOf(0f) }
-
-
+    val currentPos = remember { mutableStateOf(Pair(0f, 0f)) }
+    val label = "(${currentPos.value.first}, ${currentPos.value.second})"
     // Grid step (distance between grid lines in pixels at scale 1.0)
     val step = 40f
 
@@ -146,7 +150,7 @@ fun MultiCanvas(
             }
         }
         // Compute cursor position in Cartesian coordinates
-        val currentPos = canvasToCartesian(
+        val currentPos1 = canvasToCartesian(
             canvasX = cursorX.value,
             canvasY = cursorY.value,
             originX = originX,
@@ -154,31 +158,11 @@ fun MultiCanvas(
             step = step,
             scale = scale
         )
-
-        val label = "(${currentPos.first}, ${currentPos.second})"
-
+        currentPos.value = Pair(currentPos1.first, currentPos1.second)
         // Convert dp/sp → px manually for canvas
         val paint = Paint().asFrameworkPaint().apply {
             isAntiAlias = true
             color = Color.Black.toArgb()
-        }
-
-        // Draw label at a stable offset (bottom-right for example)
-        with(scope) {
-            val layout = textMeasurer.measure(
-                text = AnnotatedString(label),
-                style = TextStyle(
-                    fontSize = 12.sp,
-                    color = Color.Black
-                )
-            )
-            drawText(
-                textLayoutResult = layout,
-                topLeft = Offset(
-                    offsetX + step * scale,
-                    offsetY + step * scale
-                )
-            )
         }
     }
 
@@ -201,6 +185,13 @@ fun MultiCanvas(
                 cursorX.value = newCursorX
                 cursorY.value = newCursorY
             }
+        )
+        // Draw label at a stable offset (bottom-right for example)
+        Text(
+            text = label,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
         )
     }
 
