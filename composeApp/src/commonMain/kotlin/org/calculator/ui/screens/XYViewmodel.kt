@@ -50,6 +50,22 @@ class XYViewmodel : CustomViewModel<XYContract.State, XYContract.Event, XYContra
                 newColors[uiState.value.selectedFunctionIndex] = event.color
                 setState(uiState.value.copy(colors = newColors, selectedFunctionIndex = -1))
             }
+
+            is XYContract.Event.AddFunction -> {
+                val newFieldsInput = uiState.value.fieldsInput.toMutableList()
+                newFieldsInput.add("y = x")
+                val newExpressions = uiState.value.expressions.toMutableList()
+                newExpressions.add(Expression.CartesianYXExpression("y = x"))
+                val newColors = uiState.value.colors.toMutableList()
+                newColors.add(Color(200, 200, 200))
+                setState(
+                    uiState.value.copy(
+                        fieldsInput = newFieldsInput,
+                        expressions = newExpressions,
+                        colors = newColors
+                    )
+                )
+            }
         }
     }
 }
