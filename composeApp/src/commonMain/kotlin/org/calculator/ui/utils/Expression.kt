@@ -1,6 +1,6 @@
 package org.calculator.ui.utils
 
-/*ExpressionType {
+enum class ExpressionType {
     CARTESIAN_Y_X, // y = f(x)
     CARTESIAN_X, // x = c, c is a constant
     CARTESIAN_IMPLICIT, // f(x,y) = 0, a*x^n + c = 0 etc.
@@ -12,7 +12,20 @@ package org.calculator.ui.utils
     AREA, // [(x1, y1), (x2,y2), ...]
     VECTOR, // vec(x,y)
     ARC // arc((x,y), r, u)
-}*/
+}
+
+data class ArcExpression(
+    val x: Float,
+    val y: Float,
+    val r: Float,
+    val start: Float,
+    val sweep: Float
+)
+
+data class Vector(
+    val x: Float,
+    val y: Float
+)
 
 sealed interface Expression {
     val formula: String

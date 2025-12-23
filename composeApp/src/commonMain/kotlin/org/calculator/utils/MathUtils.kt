@@ -3,7 +3,16 @@ package org.calculator.utils
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import org.calculator.ui.utils.ArcExpression
+import org.calculator.ui.utils.ExpressionType
+import org.calculator.ui.utils.Vector
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.hypot
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * Converts a Cartesian coordinate (x, y) to the corresponding Compose canvas coordinate (Offset).
@@ -194,3 +203,168 @@ fun drawPoints(
     }
 }
 
+/** Detects the type of expression from the formula
+ * @param formula The formula to detect the type of
+ * @return An `ExpressionType`
+ */
+fun formulaToExpressionType(formula: String): ExpressionType {
+    val f = formula
+        .lowercase()
+        .replace("\\s+".toRegex(), "")
+
+    /* ---------- Explicit structured constructs ---------- */
+
+    // Integral(f(x), a, b)
+    if (f.startsWith("integral(")) {
+        return ExpressionType.INTEGRAL
+    }
+
+    // Area: [(x1,y1),(x2,y2),...]
+    if (f.startsWith("[") && f.contains("),(")) {
+        return ExpressionType.AREA
+    }
+
+    // Arc: arc((x,y),r,u)
+    if (f.startsWith("arc(")) {
+        return ExpressionType.ARC
+    }
+
+    // Vector: vec(x,y)
+    if (f.startsWith("vec(")) {
+        return ExpressionType.VECTOR
+    }
+
+    // Point: (x,y)
+    if (f.startsWith("(") && f.endsWith(")") && f.contains(",")) {
+        return ExpressionType.POINT
+    }
+
+    /* ---------- Parametric ---------- */
+
+    // x(t), y(t) or r(t)
+    if (f.contains("t")) {
+        return ExpressionType.PARAMETRIC
+    }
+
+    /* ---------- Polar ---------- */
+
+    // r = f(u)
+    if (f.contains("r=") && f.contains("u")) {
+        return ExpressionType.POLAR_R_U
+    }
+
+    // u = c
+    if (f.startsWith("u=")) {
+        return ExpressionType.POLAR_U
+    }
+
+    /* ---------- Cartesian ---------- */
+
+    // y = f(x)
+    if (f.startsWith("y=")) {
+        return ExpressionType.CARTESIAN_Y_X
+    }
+
+    // x = c
+    if (f.startsWith("x=") && !f.contains("y")) {
+        return ExpressionType.CARTESIAN_X
+    }
+
+    // f(x,y) = 0
+    if (f.contains("x") && f.contains("y") && f.contains("=")) {
+        return ExpressionType.CARTESIAN_IMPLICIT
+    }
+
+    /* ---------- Fallback ---------- */
+
+    // Default to implicit Cartesian if x or y exists
+    if (f.contains("x") || f.contains("y")) {
+        return ExpressionType.CARTESIAN_IMPLICIT
+    }
+
+    // Safe fallback
+    return ExpressionType.CARTESIAN_Y_X
+}
+
+fun parseArc(formula: String): ArcExpression {
+    val content = formula
+        .removePrefix("arc(")
+        .removeSuffix(")")
+
+    val parts = content
+        .replace("(", "")
+        .replace(")", "")
+        .split(",")
+        .map { it.trim().toFloat() }
+
+    require(parts.size == 5)
+
+    return ArcExpression(
+        x = parts[0],
+        y = parts[1],
+        r = parts[2],
+        start = parts[3],
+        sweep = parts[4]
+    )
+}
+
+fun parseVector(formula: String): Vector {
+    val content = formula
+        .removePrefix("vec(")
+        .removeSuffix(")")
+
+    val parts = content
+        .replace("(", "")
+        .replace(")", "")
+        .split(",")
+        .map { it.trim().toFloat() }
+
+    require(parts.size == 2)
+
+    return Vector(
+        x = parts[0],
+        y = parts[1]
+    )
+}
+
+fun arrowHeadPoints(
+    endX: Float,
+    endY: Float,
+    originX: Float,
+    originY: Float,
+    arrowLength: Float = 20f,
+    angleDeg: Float = 30f
+): List<Float> {
+
+    val dx = endX - originX
+    val dy = endY - originY
+
+    val len = hypot(dx, dy)
+    if (len == 0f) return listOf(endX, endY, endX, endY)
+
+    val ux = dx / len
+    val uy = dy / len
+
+    val angle = angleDeg.toRadians()
+    val sin = sin(angle)
+    val cos = cos(angle)
+
+    // Rotate BACKWARD from direction (arrowhead points backward)
+    val lx = cos * ux - sin * uy
+    val ly = sin * ux + cos * uy
+
+    val rx = cos * ux + sin * uy
+    val ry = -sin * ux + cos * uy
+
+    return listOf(
+        endX - lx * arrowLength,
+        endY - ly * arrowLength,
+        endX - rx * arrowLength,
+        endY - ry * arrowLength
+    )
+}
+
+
+fun Float.toRadians(): Float {
+    return (this * (PI / 180f)).toFloat()
+}
