@@ -364,7 +364,69 @@ fun arrowHeadPoints(
     )
 }
 
+fun parseArea(formula: String) : List<String> {
+    return formula.removePrefix("[").removeSuffix("]").splitPoints().map{ it.trim() }
+}
+
+fun parsePoint(formula: String) : Vector {
+    val (x, y) = formula.removeSurrounding("(", ")").split(",").map { it.toFloat() }
+    return Vector(x,y)
+}
+
 
 fun Float.toRadians(): Float {
     return (this * (PI / 180f)).toFloat()
+}
+
+/** If input is in the format `"(...,...),(...,...),..."`
+ * returns a list of the format `listOf("(...,...)","(...,...)",...)`
+ */
+fun String.splitPoints(): List<String> {
+    val result = mutableListOf<String>()
+    var depth = 0
+    var currentPoint = StringBuilder()
+
+    for (char in this) {
+        when (char) {
+            '(' -> {
+                depth++
+                currentPoint.append(char)
+            }
+            ')' -> {
+                depth--
+                currentPoint.append(char)
+                if (depth == 0 && currentPoint.isNotEmpty()) {
+                    result.add(currentPoint.toString())
+                    currentPoint.clear()
+                }
+            }
+            ',' -> {
+                if (depth > 0) {
+                    currentPoint.append(char)
+                }
+                // Skip commas outside parentheses (they separate points)
+            }
+            else -> {
+                if (depth > 0 || !char.isWhitespace()) {
+                    currentPoint.append(char)
+                }
+            }
+        }
+    }
+
+    return result
+}
+
+fun vecSum(vectors: List<Vector>, index: Int) : Float {
+    var sum = 0f
+    if (index == 0) {
+        vectors.forEach {
+            sum += it.x
+        }
+    } else {
+        vectors.forEach {
+            sum += it.y
+        }
+    }
+    return sum
 }

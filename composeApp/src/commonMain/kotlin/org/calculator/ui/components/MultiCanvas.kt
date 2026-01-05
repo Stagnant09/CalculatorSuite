@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -25,12 +26,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.calculator.nativeLib.ImplicitPlotter
 import org.calculator.ui.utils.Expression
+import org.calculator.ui.utils.Vector
 import org.calculator.utils.arrowHeadPoints
 import org.calculator.utils.canvasToCartesian
 import org.calculator.utils.cartesianToCanvas
 import org.calculator.utils.drawPoints
 import org.calculator.utils.parseArc
+import org.calculator.utils.parseArea
+import org.calculator.utils.parsePoint
 import org.calculator.utils.parseVector
+import org.calculator.utils.vecSum
+import kotlin.math.atan2
+import kotlin.math.exp
 import kotlin.math.roundToInt
 
 @Composable
@@ -201,7 +208,78 @@ fun MultiCanvas(
                     )
                 }
 
-                is Expression.AreaExpression -> {}
+                is Expression.AreaExpression -> {
+                    try {
+                        val points : MutableList<Vector> = mutableListOf()
+                        parseArea(expression.formula).forEach { pointString ->
+                            println(pointString)
+                            points.add(parsePoint(pointString))
+                        }
+                        points.forEach { point ->
+                            val (x, y) = point
+                            val (canvasX, canvasY) = cartesianToCanvas(
+                                x = x,
+                                y = y,
+                                originX = originX,
+                                originY = originY,
+                                step = step,
+                                scale = scale
+                            )
+                            scope.drawCircle(
+                                center = Offset(canvasX, canvasY),
+                                radius = 5f,
+                                color = colors[index],
+                                style = Fill
+                            )
+                        }
+                        // Shade the area enclosed by the points
+                        if (points.size >= 3) {
+                            // Sort points to form a proper polygon (counterclockwise from centroid)
+                            val centroid = Vector(
+                                x = vecSum(points, 0) / points.size,
+                                y = vecSum(points, 1) / points.size
+                            )
+
+                            val sortedPoints = points.sortedBy { point ->
+                                atan2(point.y - centroid.y, point.x - centroid.x)
+                            }
+
+                            val path = Path().apply {
+                                val firstPoint = sortedPoints.first()
+                                val (startX, startY) = cartesianToCanvas(
+                                    x = firstPoint.x,
+                                    y = firstPoint.y,
+                                    originX = originX,
+                                    originY = originY,
+                                    step = step,
+                                    scale = scale
+                                )
+                                moveTo(startX, startY)
+
+                                sortedPoints.drop(1).forEach { point ->
+                                    val (x, y) = point
+                                    val (canvasX, canvasY) = cartesianToCanvas(
+                                        x = x,
+                                        y = y,
+                                        originX = originX,
+                                        originY = originY,
+                                        step = step,
+                                        scale = scale
+                                    )
+                                    lineTo(canvasX, canvasY)
+                                }
+                                close()
+                            }
+
+                            scope.drawPath(
+                                path = path,
+                                color = colors[index].copy(alpha = 0.3f),
+                                style = Fill
+                            )
+                        }
+                    }
+                    catch (e: Exception) {}
+                }
                 is Expression.IntegralExpression -> {}
                 is Expression.ParametricExpression -> {}
                 is Expression.PointExpression -> {
