@@ -1,5 +1,6 @@
 package org.calculator.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -19,11 +20,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import calculatorsuite.composeapp.generated.resources.Res
 import calculatorsuite.composeapp.generated.resources.select_24px
 import calculatorsuite.composeapp.generated.resources.swipe_vertical_24px
+import org.calculator.models.SidePanelAction
 import org.calculator.ui.components.CircularColorPicker
 import org.calculator.ui.components.FunctionField
 import org.calculator.ui.components.MultiCanvas
@@ -42,6 +45,7 @@ fun XYScreen(viewModel: XYViewmodel) {
         remember { MutableInteractionSource() },
         remember { MutableInteractionSource() },
     )
+    val currentAction = remember { mutableStateOf(SidePanelAction.COLOR) }
 
     Scaffold(
         topBar = {
@@ -64,7 +68,7 @@ fun XYScreen(viewModel: XYViewmodel) {
                                 modifier = Modifier.size(width = 48.dp, height = 30.dp).clickable(
                                     interactionSource = interactionSources[0],
                                     onClick = {
-
+                                        currentAction.value = SidePanelAction.COLOR
                                     }
                                 ),
                                 contentAlignment = Alignment.Center
@@ -78,8 +82,14 @@ fun XYScreen(viewModel: XYViewmodel) {
                                 modifier = Modifier.size(width = 48.dp, height = 30.dp).clickable(
                                     interactionSource = interactionSources[1],
                                     onClick = {
-
+                                        if (currentAction.value == SidePanelAction.SELECT) {
+                                            currentAction.value = SidePanelAction.COLOR
+                                        } else {
+                                            currentAction.value = SidePanelAction.SELECT
+                                        }
                                     }
+                                ).background(
+                                    if (currentAction.value == SidePanelAction.SELECT) Color.Blue else Color.Unspecified
                                 ),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -93,8 +103,14 @@ fun XYScreen(viewModel: XYViewmodel) {
                                 modifier = Modifier.size(width = 48.dp, height = 30.dp).clickable(
                                     interactionSource = interactionSources[2],
                                     onClick = {
-
+                                        if (currentAction.value == SidePanelAction.DRAG) {
+                                            currentAction.value = SidePanelAction.COLOR
+                                        } else {
+                                            currentAction.value = SidePanelAction.DRAG
+                                        }
                                     }
+                                ).background(
+                                    if (currentAction.value == SidePanelAction.DRAG) Color.Blue else Color.Unspecified
                                 ),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -138,6 +154,7 @@ fun XYScreen(viewModel: XYViewmodel) {
                         state.fieldsInput.forEachIndexed { index, string ->
                             FunctionField(
                                 value = string,
+                                action = currentAction.value,
                                 color = state.colors[index],
                                 onValueChange = { newValue ->
                                     viewModel.setEvent(

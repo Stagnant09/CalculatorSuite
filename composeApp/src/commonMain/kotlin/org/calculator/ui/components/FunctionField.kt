@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -21,11 +22,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import calculatorsuite.composeapp.generated.resources.Res
+import calculatorsuite.composeapp.generated.resources.select_24px
+import org.calculator.models.SidePanelAction
 import org.calculator.ui.utils.HSpacer
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun FunctionField(
     label: String = "y = f(x)",
+    action: SidePanelAction = SidePanelAction.COLOR,
     color: Color = Color.Red,
     value: String,
     onValueChange: (String) -> Unit,
@@ -40,15 +46,48 @@ fun FunctionField(
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 🎨 Circular color button
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(color)
-                .clickable { onColorClick() }
-                .border(1.dp, Color.Gray, CircleShape)
-        )
+        when (action) {
+            SidePanelAction.COLOR -> {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(color)
+                        .clickable { onColorClick() }
+                        .border(1.dp, Color.Gray, CircleShape)
+                )
+            }
+            SidePanelAction.SELECT -> {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                ){
+                    IconButton(
+                        onClick = {}
+                    ){
+                        Icon(
+                            painter = painterResource(Res.drawable.select_24px),
+                            contentDescription = "Select"
+                        )
+                    }
+                }
+            }
+            SidePanelAction.DRAG -> {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                ){
+                    IconButton(
+                        onClick = {}
+                    ){
+                        Icon(
+                            imageVector = Icons.Filled.DragIndicator,
+                            contentDescription = "Select"
+                        )
+                    }
+                }
+            }
+        }
 
         HSpacer(12)
 
