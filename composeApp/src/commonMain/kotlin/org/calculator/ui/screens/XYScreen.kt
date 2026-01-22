@@ -164,7 +164,8 @@ fun XYScreen(viewModel: XYViewmodel) {
                                         )
                                     )
                                 },
-                                onColorClick = { viewModel.setEvent(XYContract.Event.SelectFunction(index)) }
+                                onActionButtonClick = { viewModel.setEvent(XYContract.Event.SelectFunction(index)) },
+                                onClearClick = { viewModel.setEvent(XYContract.Event.RemoveFunction(index)) }
                             )
                         }
                         VSpacer(6)

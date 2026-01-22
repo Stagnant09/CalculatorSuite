@@ -3,8 +3,10 @@ package org.calculator.ui.screens
 import androidx.compose.ui.graphics.Color
 import com.example.calculator.foundation.CustomViewModel
 import org.calculator.ui.utils.Expression
+import org.calculator.ui.utils.Expression.*
 import org.calculator.ui.utils.ExpressionType
 import org.calculator.utils.formulaToExpressionType
+import org.calculator.utils.removeElement
 
 class XYViewmodel : CustomViewModel<XYContract.State, XYContract.Event, XYContract.Effect>(
     initialState = XYContract.State(
@@ -24,17 +26,17 @@ class XYViewmodel : CustomViewModel<XYContract.State, XYContract.Event, XYContra
                 newFieldsInput[event.index] = event.value
                 setState(uiState.value.copy(fieldsInput = newFieldsInput, expressions = newFieldsInput.map {
                     when (formulaToExpressionType(it)) {
-                        ExpressionType.CARTESIAN_Y_X -> Expression.CartesianYXExpression(it)
-                        ExpressionType.CARTESIAN_X -> Expression.CartesianXExpression(it)
-                        ExpressionType.CARTESIAN_IMPLICIT -> Expression.CartesianImplicitExpression(it)
-                        ExpressionType.POLAR_R_U -> Expression.PolarRUExpression(it)
-                        ExpressionType.POLAR_U -> Expression.PolarUExpression(it)
-                        ExpressionType.PARAMETRIC -> Expression.ParametricExpression(it)
-                        ExpressionType.POINT -> Expression.PointExpression(it)
-                        ExpressionType.INTEGRAL -> Expression.IntegralExpression(it)
-                        ExpressionType.AREA -> Expression.AreaExpression(it)
-                        ExpressionType.VECTOR -> Expression.VectorExpression(it)
-                        ExpressionType.ARC -> Expression.ArcExpression(it)
+                        ExpressionType.CARTESIAN_Y_X -> CartesianYXExpression(it)
+                        ExpressionType.CARTESIAN_X -> CartesianXExpression(it)
+                        ExpressionType.CARTESIAN_IMPLICIT -> CartesianImplicitExpression(it)
+                        ExpressionType.POLAR_R_U -> PolarRUExpression(it)
+                        ExpressionType.POLAR_U -> PolarUExpression(it)
+                        ExpressionType.PARAMETRIC -> ParametricExpression(it)
+                        ExpressionType.POINT -> PointExpression(it)
+                        ExpressionType.INTEGRAL -> IntegralExpression(it)
+                        ExpressionType.AREA -> AreaExpression(it)
+                        ExpressionType.VECTOR -> VectorExpression(it)
+                        ExpressionType.ARC -> ArcExpression(it)
                     }
                 }))
             }
@@ -55,7 +57,7 @@ class XYViewmodel : CustomViewModel<XYContract.State, XYContract.Event, XYContra
                 val newFieldsInput = uiState.value.fieldsInput.toMutableList()
                 newFieldsInput.add("y = x")
                 val newExpressions = uiState.value.expressions.toMutableList()
-                newExpressions.add(Expression.CartesianYXExpression("y = x"))
+                newExpressions.add(CartesianYXExpression("y = x"))
                 val newColors = uiState.value.colors.toMutableList()
                 newColors.add(Color(200, 200, 200))
                 setState(
@@ -65,6 +67,17 @@ class XYViewmodel : CustomViewModel<XYContract.State, XYContract.Event, XYContra
                         colors = newColors
                     )
                 )
+            }
+
+            is XYContract.Event.RemoveFunction -> {
+                println("RemoveFunction: $event")
+                val newFieldsInput = uiState.value.fieldsInput.toMutableList().removeElement(event.index)
+                val newExpressions = uiState.value.expressions.toMutableList().removeElement(event.index)
+                val newColors = uiState.value.colors.toMutableList().removeElement(event.index)
+                if (uiState.value.selectedFunctionIndex == event.index) {
+                    setState(uiState.value.copy(selectedFunctionIndex = -1))
+                }
+                setState(uiState.value.copy(fieldsInput = newFieldsInput, expressions = newExpressions, colors = newColors))
             }
         }
     }

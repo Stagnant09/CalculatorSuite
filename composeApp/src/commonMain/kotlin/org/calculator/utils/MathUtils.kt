@@ -430,3 +430,7 @@ fun vecSum(vectors: List<Vector>, index: Int) : Float {
     }
     return sum
 }
+
+fun <T> List<T>.removeElement(index: Int) : List<T> {
+    return this.subList(0, index) + this.subList(index + 1, this.size)
+}

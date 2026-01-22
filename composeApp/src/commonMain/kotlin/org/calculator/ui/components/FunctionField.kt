@@ -3,6 +3,9 @@ package org.calculator.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import calculatorsuite.composeapp.generated.resources.Res
 import calculatorsuite.composeapp.generated.resources.select_24px
@@ -35,7 +39,7 @@ fun FunctionField(
     color: Color = Color.Red,
     value: String,
     onValueChange: (String) -> Unit,
-    onColorClick: () -> Unit = {},
+    onActionButtonClick: () -> Unit = {},
     onClearClick: () -> Unit = {}
 ) {
     val isFocused = remember { mutableStateOf(false) }
@@ -53,7 +57,7 @@ fun FunctionField(
                         .size(32.dp)
                         .clip(CircleShape)
                         .background(color)
-                        .clickable { onColorClick() }
+                        .clickable { onActionButtonClick() }
                         .border(1.dp, Color.Gray, CircleShape)
                 )
             }
@@ -105,15 +109,21 @@ fun FunctionField(
             shape = RoundedCornerShape(12.dp),
             trailingIcon = {
                 if (isFocused.value) {
-                    IconButton(onClick = {
-                        onClearClick()
-                    }){
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "Remove function",
-                            tint = color
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "Remove function",
+                        tint = color,
+                        modifier = Modifier
+                            .combinedClickable(
+                                onClick = { onClearClick() }
+                            )
+                            .pointerInput(Unit) {
+                                detectTapGestures {
+                                    onClearClick()
+                                }
+                            }
+                            .padding(8.dp)
+                    )
                 }
             }
         )

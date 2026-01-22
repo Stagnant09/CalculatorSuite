@@ -20,6 +20,7 @@ sealed interface XYContract {
         data class SelectFunction(val index: Int) : Event
         data class UpdateColor(val color: Color) : Event
         data object AddFunction : Event
+        data class RemoveFunction(val index: Int) : Event
     }
 
     sealed interface Effect : CustomEffect {
