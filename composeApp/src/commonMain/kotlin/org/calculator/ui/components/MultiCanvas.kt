@@ -8,7 +8,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
@@ -16,28 +15,14 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import org.calculator.nativeLib.ImplicitPlotter
 import org.calculator.ui.utils.Expression
 import org.calculator.ui.utils.Vector
-import org.calculator.utils.arrowHeadPoints
-import org.calculator.utils.canvasToCartesian
-import org.calculator.utils.cartesianToCanvas
-import org.calculator.utils.drawPoints
-import org.calculator.utils.parseArc
-import org.calculator.utils.parseArea
-import org.calculator.utils.parsePoint
-import org.calculator.utils.parseVector
-import org.calculator.utils.vecSum
+import org.calculator.utils.*
 import kotlin.math.atan2
-import kotlin.math.exp
 import kotlin.math.roundToInt
 
 @Composable
@@ -379,7 +364,7 @@ fun MultiCanvas(
                 cursorY.value = newCursorY
             }
         )
-        // Draw label at a stable offset (bottom-right for example)
+        // Draw label at a stable offset (bottom-right)
         Text(
             text = label,
             modifier = Modifier

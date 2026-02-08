@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.composeHotReload)
+    //alias(libs.plugins.composeHotReload)
 }
 
 kotlin {
@@ -17,11 +17,11 @@ kotlin {
         binaries.executable()
     }
     
-    @OptIn(ExperimentalWasmDsl::class)
+    /*@OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser()
         binaries.executable()
-    }
+    }*/
     
     sourceSets {
         commonMain.dependencies {
@@ -103,7 +103,7 @@ tasks.named("jvmProcessResources") {
 tasks.named("jvmProcessResources") {
     dependsOn(copyNativeLib)
 }
-tasks.named("jvmRun") {
+tasks.named("build") {
     dependsOn(copyNativeLib)
 }
 
