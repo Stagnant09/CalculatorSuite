@@ -1,12 +1,8 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
-import org.gradle.internal.os.OperatingSystem
-
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    //alias(libs.plugins.composeHotReload)
+    alias(libs.plugins.composeHotReload)
 }
 
 kotlin {
@@ -16,14 +12,9 @@ kotlin {
         browser()
         binaries.executable()
     }
-    
-    /*@OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
-        binaries.executable()
-    }*/
-    
+
     sourceSets {
+
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -32,12 +23,15 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(compose.materialIconsExtended)
+
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
         }
+
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
@@ -46,29 +40,12 @@ kotlin {
     }
 }
 
-
-compose.desktop {
-    application {
-        mainClass = "org.calculator.MainKt"
-
-        nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "org.calculator"
-            packageVersion = "1.0.0"
-        }
-    }
-}
-
-
-
 val buildNativeLib by tasks.registering(Exec::class) {
     val buildDir = layout.buildDirectory.dir("native").get().asFile
     val sourceDir = file("src/commonMain/cpp")
 
-    // Ensure build directory exists
     doFirst { buildDir.mkdirs() }
 
-    // Configure CMake
     commandLine(
         "cmake",
         "-S", sourceDir.absolutePath,
@@ -78,9 +55,9 @@ val buildNativeLib by tasks.registering(Exec::class) {
 }
 
 val buildNativeRelease by tasks.registering(Exec::class) {
-    val buildDir = layout.buildDirectory.dir("native").get().asFile
-
     dependsOn(buildNativeLib)
+
+    val buildDir = layout.buildDirectory.dir("native").get().asFile
 
     commandLine(
         "cmake",
@@ -100,9 +77,6 @@ tasks.named("jvmProcessResources") {
     dependsOn(copyNativeLib)
 }
 
-tasks.named("jvmProcessResources") {
-    dependsOn(copyNativeLib)
-}
 tasks.named("build") {
     dependsOn(copyNativeLib)
 }

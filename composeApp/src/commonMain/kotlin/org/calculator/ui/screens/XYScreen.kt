@@ -27,6 +27,7 @@ import calculatorsuite.composeapp.generated.resources.Res
 import calculatorsuite.composeapp.generated.resources.select_24px
 import calculatorsuite.composeapp.generated.resources.swipe_vertical_24px
 import org.calculator.models.SidePanelAction
+import org.calculator.ui.components.AddGraphDialog
 import org.calculator.ui.components.CircularColorPicker
 import org.calculator.ui.components.FunctionField
 import org.calculator.ui.components.MultiCanvas
@@ -37,6 +38,7 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun XYScreen(viewModel: XYViewmodel) {
     val showSidePanel = remember { mutableStateOf(false) }
+    val showAddGraphDialog = remember { mutableStateOf(false) }
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
     val interactionSources = listOf(
         remember { MutableInteractionSource() },
@@ -68,6 +70,7 @@ fun XYScreen(viewModel: XYViewmodel) {
                                 modifier = Modifier.size(width = 48.dp, height = 30.dp).clickable(
                                     interactionSource = interactionSources[0],
                                     onClick = {
+                                        showAddGraphDialog.value = true
                                         currentAction.value = SidePanelAction.COLOR
                                     }
                                 ),
@@ -189,5 +192,8 @@ fun XYScreen(viewModel: XYViewmodel) {
             onDismissRequest = { viewModel.setEvent(XYContract.Event.SelectFunction(-1)) },
             onConfirm = { color -> viewModel.setEvent(XYContract.Event.UpdateColor(color)) }
         )
+    }
+    if (showAddGraphDialog.value) {
+        AddGraphDialog(onDismiss = { showAddGraphDialog.value = false })
     }
 }
