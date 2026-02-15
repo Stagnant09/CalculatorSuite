@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.calculator.foundation.CustomEffect
+import org.calculator.foundation.CustomEvent
+import org.calculator.foundation.CustomState
 
 abstract class CustomViewModel<T : CustomState, R : CustomEvent, S : CustomEffect>(
     initialState: T

@@ -1,9 +1,9 @@
 package org.calculator.ui.screens
 
 import androidx.compose.ui.graphics.Color
-import com.example.calculator.foundation.CustomEffect
-import com.example.calculator.foundation.CustomEvent
-import com.example.calculator.foundation.CustomState
+import org.calculator.foundation.CustomEffect
+import org.calculator.foundation.CustomEvent
+import org.calculator.foundation.CustomState
 import org.calculator.ui.utils.Expression
 
 sealed interface XYContract {
