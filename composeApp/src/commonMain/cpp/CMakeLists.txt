@@ -16,5 +16,3 @@ target_include_directories(implicit_graph PRIVATE
     ${JNI_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
-# If exprtk.hpp is in a subfolder, adjust include dirs.
-# Optionally set visibility flags for Windows.
