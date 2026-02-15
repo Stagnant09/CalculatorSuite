@@ -13,6 +13,7 @@ import kotlin.math.hypot
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.random.Random
 
 /**
  * Converts a Cartesian coordinate (x, y) to the corresponding Compose canvas coordinate (Offset).
@@ -433,4 +434,12 @@ fun vecSum(vectors: List<Vector>, index: Int) : Float {
 
 fun <T> List<T>.removeElement(index: Int) : List<T> {
     return this.subList(0, index) + this.subList(index + 1, this.size)
+}
+
+fun randomRGBColor() : Color {
+    return Color(
+        Random.nextFloat(),
+        Random.nextFloat(),
+        Random.nextFloat()
+    )
 }

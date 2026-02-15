@@ -193,7 +193,22 @@ fun XYScreen(viewModel: XYViewmodel) {
             onConfirm = { color -> viewModel.setEvent(XYContract.Event.UpdateColor(color)) }
         )
     }
+
     if (showAddGraphDialog.value) {
-        AddGraphDialog(onDismiss = { showAddGraphDialog.value = false })
+        AddGraphDialog(
+            onDismiss = { showAddGraphDialog.value = false },
+            onConfirm = {
+                viewModel.setEvent(
+                    XYContract.Event.AddFunction
+                )
+                viewModel.setEvent(
+                    XYContract.Event.UpdateFieldInput(
+                        state.fieldsInput.size,
+                        it
+                    )
+                )
+                showAddGraphDialog.value = false
+            }
+        )
     }
 }

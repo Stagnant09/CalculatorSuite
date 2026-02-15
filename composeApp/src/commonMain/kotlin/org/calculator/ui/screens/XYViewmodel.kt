@@ -6,6 +6,7 @@ import org.calculator.ui.utils.Expression
 import org.calculator.ui.utils.Expression.*
 import org.calculator.ui.utils.ExpressionType
 import org.calculator.utils.formulaToExpressionType
+import org.calculator.utils.randomRGBColor
 import org.calculator.utils.removeElement
 
 class XYViewmodel : CustomViewModel<XYContract.State, XYContract.Event, XYContract.Effect>(
@@ -59,7 +60,7 @@ class XYViewmodel : CustomViewModel<XYContract.State, XYContract.Event, XYContra
                 val newExpressions = uiState.value.expressions.toMutableList()
                 newExpressions.add(CartesianYXExpression("y = x"))
                 val newColors = uiState.value.colors.toMutableList()
-                newColors.add(Color(200, 200, 200))
+                newColors.add(randomRGBColor())
                 setState(
                     uiState.value.copy(
                         fieldsInput = newFieldsInput,
