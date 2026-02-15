@@ -200,7 +200,6 @@ fun GrayscaleBar(
 
     var selectorOffset by remember { mutableStateOf<Offset?>(null) }
 
-    // Reset selector when currentColor changes (i.e., from circular picker)
     remember(currentColor) {
         selectorOffset = null
     }
@@ -224,7 +223,7 @@ fun GrayscaleBar(
         val height = size.height
         val cornerRadius = height / 4
 
-        // Gradient: White → OriginalColor → Black
+        // Gradient: White -> OriginalColor -> Black
         val grayscaleBrush = Brush.horizontalGradient(
             colors = listOf(
                 Color.White,
@@ -269,12 +268,12 @@ fun GrayscaleBar(
             // Adjust only the value (brightness) based on position
             val value = when {
                 ratio < 0.5f -> {
-                    // White → CurrentColor (first half)
+                    // White -> CurrentColor (first half)
                     val t = ratio * 2 // 0.0 to 1.0
                     lerp(1f, 1f, t) // Full brightness on left half
                 }
                 else -> {
-                    // CurrentColor → Black (second half)
+                    // CurrentColor -> Black (second half)
                     val t = (ratio - 0.5f) * 2 // 0.0 to 1.0
                     lerp(1f, 0f, t) // Reduce brightness on right half
                 }

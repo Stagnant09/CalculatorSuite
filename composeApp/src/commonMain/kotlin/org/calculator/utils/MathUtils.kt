@@ -405,7 +405,6 @@ fun String.splitPoints(): List<String> {
                 if (depth > 0) {
                     currentPoint.append(char)
                 }
-                // Skip commas outside parentheses (they separate points)
             }
             else -> {
                 if (depth > 0 || !char.isWhitespace()) {

@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import org.calculator.nativeLib.ImplicitPlotter
 import org.calculator.ui.utils.Expression
@@ -34,7 +33,6 @@ fun MultiCanvas(
     var scale by remember { mutableStateOf(1f) }
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
-    val textMeasurer = rememberTextMeasurer()
     val cursorX = remember { mutableStateOf(0f) }
     val cursorY = remember { mutableStateOf(0f) }
     val currentPos = remember { mutableStateOf(Pair(0f, 0f)) }
@@ -110,7 +108,7 @@ fun MultiCanvas(
                         originY = centerY,
                         step = step,
                         scale = scale,
-                        threshold = 0.012f  // lower threshold for better sampling
+                        threshold = 0.012f
                     )
                     drawPoints(
                         points = bitmap,
@@ -138,7 +136,7 @@ fun MultiCanvas(
                                         originY = centerY,
                                         step = step,
                                         scale = scale,
-                                        threshold = 0.0000005f  // lower threshold for better sampling
+                                        threshold = 0.0000005f
                                     )
                                     drawPoints(
                                         points = meetPoints,
@@ -337,7 +335,7 @@ fun MultiCanvas(
             scale = scale
         )
         currentPos.value = Pair(currentPos1.first, currentPos1.second)
-        // Convert dp/sp → px manually for canvas
+        // Convert dp/sp -> px manually for canvas
         val paint = Paint().asFrameworkPaint().apply {
             isAntiAlias = true
             color = Color.Black.toArgb()

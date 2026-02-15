@@ -63,7 +63,7 @@ fun CartesianGridCanvas(
     val textMeasurer = rememberTextMeasurer()
     val baseTextStyle = TextStyle(
         color = Color.DarkGray,
-        fontSize = 16.sp, // Smaller base size that will be scaled
+        fontSize = 16.sp,
         textAlign = TextAlign.Center
     )
     Box(
@@ -115,7 +115,6 @@ fun CartesianGridCanvas(
                             originY
                         )
 
-                        // Let the parent decide whether this is point-drag or panning.
                         onPan(dragAmount.x, dragAmount.y)
                     }
                 )
