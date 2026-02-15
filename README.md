@@ -55,10 +55,8 @@ The application supports a wide range of mathematical expressions:
   - Dynamic input fields based on selected type
   - Form validation and structured input
 
-- **Cartesian Grid Canvas**: Professional coordinate system with:
+- **Cartesian Grid Canvas**: Coordinate system with:
   - Adjustable grid lines and axis labels
-  - Origin markers
-  - Scale indicators
   - Coordinate tracking
 
 ## Technical Architecture
