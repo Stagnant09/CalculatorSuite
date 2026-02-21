@@ -1,12 +1,11 @@
 # CalculatorSuite
 
 A comprehensive mathematical graphing and visualization application built with Compose Multiplatform, targeting desktop platforms with native performance optimizations.
-<img width="1590" height="781" alt="Στιγμιότυπο οθόνης 2026-02-21 192233" src="https://github.com/user-attachments/assets/163a977f-189e-4e66-9f04-27ff4a52c5f5" />
-<img width="1596" height="783" alt="Στιγμιότυπο οθόνης 2026-02-21 192205" src="https://github.com/user-attachments/assets/847a8463-d07d-473b-ae13-a6a09e8291a4" />
-<img width="1597" height="783" alt="Στιγμιότυπο οθόνης 2026-02-21 192142" src="https://github.com/user-attachments/assets/b7a58309-9267-4606-82ce-2b8a20069c83" />
-<img width="1594" height="784" alt="Στιγμιότυπο οθόνης 2026-02-21 192122" src="https://github.com/user-attachments/assets/7a9f5147-97c9-4655-a2fb-b066c08427af" />
 <img width="1326" height="781" alt="Στιγμιότυπο οθόνης 2026-02-21 192102" src="https://github.com/user-attachments/assets/3c14115b-c82e-4665-b51c-d1e99f15c18f" />
-
+<img width="1594" height="784" alt="Στιγμιότυπο οθόνης 2026-02-21 192122" src="https://github.com/user-attachments/assets/7a9f5147-97c9-4655-a2fb-b066c08427af" />
+<img width="1597" height="783" alt="Στιγμιότυπο οθόνης 2026-02-21 192142" src="https://github.com/user-attachments/assets/b7a58309-9267-4606-82ce-2b8a20069c83" />
+<img width="1596" height="783" alt="Στιγμιότυπο οθόνης 2026-02-21 192205" src="https://github.com/user-attachments/assets/847a8463-d07d-473b-ae13-a6a09e8291a4" />
+<img width="1590" height="781" alt="Στιγμιότυπο οθόνης 2026-02-21 192233" src="https://github.com/user-attachments/assets/163a977f-189e-4e66-9f04-27ff4a52c5f5" />
 
 ## Overview
 
