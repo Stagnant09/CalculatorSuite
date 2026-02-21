@@ -1,6 +1,11 @@
 # CalculatorSuite
 
 A comprehensive mathematical graphing and visualization application built with Compose Multiplatform, targeting desktop platforms with native performance optimizations.
+<img width="1326" height="781" alt="Στιγμιότυπο οθόνης 2026-02-21 192102" src="https://github.com/user-attachments/assets/f942a501-210f-4fa7-ab59-8350ee3bf5db" />
+<img width="1594" height="787" alt="Στιγμιότυπο οθόνης 2026-02-21 192122" src="https://github.com/user-attachments/assets/2b399da0-3e8c-4e53-a660-2e865b3ec654" />
+<img width="1597" height="783" alt="Στιγμιότυπο οθόνης 2026-02-21 192142" src="https://github.com/user-attachments/assets/81b33ee3-3864-4efb-a850-0292b9bebbb3" />
+<img width="1596" height="785" alt="Στιγμιότυπο οθόνης 2026-02-21 192205" src="https://github.com/user-attachments/assets/768cba6b-e6a3-43e1-b90c-e59801ef2a70" />
+<img width="1595" height="781" alt="Στιγμιότυπο οθόνης 2026-02-21 192233" src="https://github.com/user-attachments/assets/61c00da5-147a-4c9e-b10b-0bc3645507d0" />
 
 ## Overview
 
