@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DragIndicator
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +38,7 @@ fun FunctionField(
     onColorButtonClick: () -> Unit = {},
     onSelectButtonClick: () -> Unit = {},
     onDragButtonClick: () -> Unit = {},
+    onOptionsButtonClick: () -> Unit = {},
     onClearClick: () -> Unit = {}
 ) {
     val isFocused = remember { mutableStateOf(false) }
@@ -122,11 +125,15 @@ fun FunctionField(
                     ),
                     textStyle = MaterialTheme.typography.bodyLarge,
                     trailingIcon = {
-                        if (value.isNotEmpty()) {
-                            IconButton(onClick = onClearClick) {
+                        if (value.isNotEmpty() && action == SidePanelAction.COLOR) {
+                            IconButton(
+                                onClick = {
+                                    onOptionsButtonClick()
+                                })
+                            {
                                 Icon(
-                                    imageVector = Icons.Default.Clear,
-                                    contentDescription = "Clear",
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "Options",
                                     modifier = Modifier.size(20.dp)
                                 )
                             }

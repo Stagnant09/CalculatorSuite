@@ -31,6 +31,7 @@ import org.calculator.ui.components.AddGraphDialog
 import org.calculator.ui.components.CircularColorPicker
 import org.calculator.ui.components.FunctionField
 import org.calculator.ui.components.MultiCanvas
+import org.calculator.ui.screens.options.OptionsScreen
 import org.calculator.ui.utils.VSpacer
 import org.jetbrains.compose.resources.painterResource
 
@@ -39,6 +40,7 @@ import org.jetbrains.compose.resources.painterResource
 fun XYScreen(viewModel: XYViewmodel) {
     val showSidePanel      = remember { mutableStateOf(true) }
     val showAddGraphDialog = remember { mutableStateOf(false) }
+    val showOptionsDialog  = remember { mutableStateOf(false) }
     val state              = viewModel.uiState.collectAsStateWithLifecycle().value
     val currentAction      = remember { mutableStateOf(SidePanelAction.COLOR) }
 
@@ -214,6 +216,9 @@ fun XYScreen(viewModel: XYViewmodel) {
                                     onSelectButtonClick = {
                                         viewModel.setEvent(XYContract.Event.SelectFunction(index))
                                     },
+                                    onOptionsButtonClick = {
+                                        showOptionsDialog.value = true
+                                    },
                                     onClearClick = {
                                         viewModel.setEvent(XYContract.Event.RemoveFunction(index))
                                     }
@@ -307,6 +312,13 @@ fun XYScreen(viewModel: XYViewmodel) {
             }
         )
     }
+
+    if (showOptionsDialog.value) {
+        OptionsScreen(
+            onDismiss = { showOptionsDialog.value = false }
+        )
+    }
+
 }
 
 // ---------------------------------------------------------------------------
