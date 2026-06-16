@@ -104,9 +104,8 @@ fun MultiCanvas(
                 // Polar  r = f(u)
                 // -----------------------------------------------------------
                 is Expression.PolarRUExpression -> {
-                    // Strip "r=" prefix and evaluate with the Kotlin evaluator
-                    val rhs = expression.formula
-                        .substringAfter("=").trim()
+                    val lhs = expression.lhs
+                    val rhs = expression.rhs
                     val steps = 2000
                     val uMin  = 0.0
                     val uMax  = 4 * PI
@@ -114,7 +113,24 @@ fun MultiCanvas(
 
                     for (i in 0..steps) {
                         val u = uMin + (uMax - uMin) * i / steps
-                        val r = evalSimple(rhs, "u", u)
+                        
+                        // We need to find r such that evaluate(lhs, r, u) = evaluate(rhs, r, u)
+                        // Actually, r is what we want. 
+                        // If it's "2r = sin(u)", then 2*r - sin(u) = 0 => r = sin(u)/2
+                        
+                        val r = if (lhs == "r") {
+                            evalSimple(rhs, "u", u)
+                        } else {
+                            // General case: lhs(r, u) = rhs(r, u)
+                            // We solve f(r) = eval(lhs, r, u) - eval(rhs, r, u) = 0
+                            val f = { rVal: Double ->
+                                val l = evalSimple(lhs, "r", rVal, "u", u)
+                                val rV = evalSimple(rhs, "r", rVal, "u", u)
+                                l - rV
+                            }
+                            solveForR(f)
+                        }
+
                         if (!r.isFinite()) { prevCanvas = null; continue }
                         val cx = r * cos(u)
                         val cy = r * sin(u)

@@ -163,8 +163,10 @@ fun formulaToExpressionType(formula: String): ExpressionType {
     if (f.startsWith("r(t)=")) return ExpressionType.PARAMETRIC
 
     // --- Polar ----------------------------------------------------------
-    if (f.startsWith("r=") && f.contains("u")) return ExpressionType.POLAR_R_U
-    if (f.startsWith("u="))                     return ExpressionType.POLAR_U
+    if (f.contains("r=") && f.contains("u")) return ExpressionType.POLAR_R_U
+    if (f.contains("u="))                     return ExpressionType.POLAR_U
+    // Catch cases like "2r = sin(u)"
+    if (f.contains("r") && f.contains("u") && f.contains("=")) return ExpressionType.POLAR_R_U
 
     // --- Cartesian vertical line: x = <number> -------------------------
     if (f.startsWith("x=") && !f.contains("y")) {
@@ -261,8 +263,8 @@ fun String.splitPoints(): List<String> {
  * Supports: +, -, *, /, ^, sin, cos, tan, sqrt, abs, pi, e.
  * Returns [Double.NaN] on any parse or evaluation error.
  */
-fun evalSimple(expr: String, varName: String, varValue: Double): Double = try {
-    SimpleExprEval(expr.trim(), varName, varValue).eval()
+fun evalSimple(expr: String, varName: String, varValue: Double, var2Name: String? = null, var2Value: Double = 0.0): Double = try {
+    SimpleExprEval(expr.trim(), varName, varValue, var2Name, var2Value).eval()
 } catch (_: Throwable) { Double.NaN }
 
 // ---------------------------------------------------------------------------
@@ -308,6 +310,34 @@ fun <T> List<T>.moveElement(fromIndex: Int, toIndex: Int): List<T> {
     val item = this[fromIndex]
     val listWithoutItem = this.toMutableList().apply { removeAt(fromIndex) }
     return listWithoutItem.apply { add(toIndex, item) }.toList()
+}
+
+fun solveForR(f: (Double) -> Double): Double {
+    // Basic root finding for polar r.
+    // Try a few points to find a sign change, then bisect.
+    var a = -100.0
+    var b = 100.0
+    val steps = 20
+    for (i in 0 until steps) {
+        val r1 = -100.0 + i * (200.0 / steps)
+        val r2 = -100.0 + (i + 1) * (200.0 / steps)
+        val f1 = f(r1)
+        val f2 = f(r2)
+        if (f1.isFinite() && f2.isFinite() && f1 * f2 <= 0) {
+            a = r1
+            b = r2
+            break
+        }
+        if (i == steps - 1) return Double.NaN
+    }
+
+    repeat(20) {
+        val mid = (a + b) / 2.0
+        val fmid = f(mid)
+        if (!fmid.isFinite()) return Double.NaN
+        if (f(a) * fmid <= 0) b = mid else a = mid
+    }
+    return (a + b) / 2.0
 }
 
 fun Float.toRadians(): Float = (this * (PI / 180f)).toFloat()

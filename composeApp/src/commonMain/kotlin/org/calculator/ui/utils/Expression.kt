@@ -41,7 +41,21 @@ sealed interface Expression {
 
     data class CartesianImplicitExpression(override val formula: String) : Expression
 
-    data class PolarRUExpression(override val formula: String) : Expression
+    data class PolarRUExpression(override val formula: String) : Expression {
+        val lhs: String
+        val rhs: String
+
+        init {
+            val parts = formula.split("=")
+            if (parts.size >= 2) {
+                lhs = parts[0].trim()
+                rhs = parts.drop(1).joinToString("=").trim()
+            } else {
+                lhs = "r"
+                rhs = formula.trim()
+            }
+        }
+    }
 
     data class PolarUExpression(override val formula: String) : Expression {
         val constant: Float = formula.substringAfter("=").trim().toFloatOrNull() ?: 0f
