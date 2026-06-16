@@ -8,6 +8,7 @@ import org.calculator.ui.utils.ExpressionType
 import org.calculator.utils.formulaToExpressionType
 import org.calculator.utils.randomRGBColor
 import org.calculator.utils.removeElement
+import org.calculator.utils.moveElement
 
 class XYViewmodel : CustomViewModel<XYContract.State, XYContract.Event, XYContract.Effect>(
     initialState = XYContract.State(
@@ -75,29 +76,38 @@ class XYViewmodel : CustomViewModel<XYContract.State, XYContract.Event, XYContra
             }
 
             // ---------------------------------------------------------------
+            is XYContract.Event.SetColorToBeEditedForIndex -> {
+                setState(uiState.value.copy(colorToBeEditedForIndex = event.index))
+            }
             is XYContract.Event.SelectFunction -> {
-                setState(uiState.value.copy(selectedFunctionIndex = event.index))
+                val s = uiState.value
+                val newSelected = if (event.index in s.isSelectedIndexes) {
+                    s.isSelectedIndexes - event.index
+                } else {
+                    s.isSelectedIndexes + event.index
+                }
+                setState(s.copy(isSelectedIndexes = newSelected))
             }
 
             is XYContract.Event.UpdateColor -> {
                 val s = uiState.value
-                if (s.selectedFunctionIndex < 0) return
+                if (s.colorToBeEditedForIndex < 0) return
                 val newColors = s.colors.toMutableList()
-                    .also { it[s.selectedFunctionIndex] = event.color }
-                setState(s.copy(colors = newColors, selectedFunctionIndex = -1))
+                    .also { it[s.colorToBeEditedForIndex] = event.color }
+                setState(s.copy(colors = newColors, colorToBeEditedForIndex = -1))
             }
 
             is XYContract.Event.RemoveFunction -> {
                 val s = uiState.value
                 val idx = event.index
-                val newSelected = if (s.selectedFunctionIndex == idx) -1 else s.selectedFunctionIndex
+                val newSelected = if (s.colorToBeEditedForIndex == idx) -1 else s.colorToBeEditedForIndex
                 setState(
                     s.copy(
                         fieldsInput          = s.fieldsInput.removeElement(idx),
                         expressions          = s.expressions.removeElement(idx),
                         colors               = s.colors.removeElement(idx),
                         errors               = s.errors.removeElement(idx),
-                        selectedFunctionIndex = newSelected
+                        colorToBeEditedForIndex = newSelected
                     )
                 )
             }
@@ -112,6 +122,72 @@ class XYViewmodel : CustomViewModel<XYContract.State, XYContract.Event, XYContra
 
             is XYContract.Event.ResetView -> {
                 setState(uiState.value.copy(scale = 1f, offsetX = 0f, offsetY = 0f))
+            }
+
+            is XYContract.Event.MoveFunction -> {
+                val s = uiState.value
+                val from = event.fromIndex
+                val to = event.toIndex
+                
+                if (from !in s.fieldsInput.indices || to !in s.fieldsInput.indices) return
+
+                val newFieldsInput = s.fieldsInput.moveElement(from, to)
+                val newExpressions = s.expressions.moveElement(from, to)
+                val newColors = s.colors.moveElement(from, to)
+                val newErrors = s.errors.moveElement(from, to)
+                
+                // Handle selection and color editing index shifts
+                val newSelected = s.isSelectedIndexes.map {
+                    when {
+                        it == from -> to
+                        from < to && it in (from + 1)..to -> it - 1
+                        from > to && it in to until from -> it + 1
+                        else -> it
+                    }
+                }.toSet()
+                
+                val newColorEdited = when {
+                    s.colorToBeEditedForIndex == from -> to
+                    s.colorToBeEditedForIndex == -1 -> -1
+                    from < to && s.colorToBeEditedForIndex in (from + 1)..to -> s.colorToBeEditedForIndex - 1
+                    from > to && s.colorToBeEditedForIndex in to until from -> s.colorToBeEditedForIndex + 1
+                    else -> s.colorToBeEditedForIndex
+                }
+
+                setState(s.copy(
+                    fieldsInput = newFieldsInput,
+                    expressions = newExpressions,
+                    colors = newColors,
+                    errors = newErrors,
+                    isSelectedIndexes = newSelected,
+                    colorToBeEditedForIndex = newColorEdited
+                ))
+            }
+
+            is XYContract.Event.RemoveFunctions -> {
+                val s = uiState.value
+                val indexesToRemove = event.indexes.sortedDescending()
+                
+                var newFieldsInput = s.fieldsInput
+                var newExpressions = s.expressions
+                var newColors = s.colors
+                var newErrors = s.errors
+                
+                indexesToRemove.forEach { idx ->
+                    newFieldsInput = newFieldsInput.removeElement(idx)
+                    newExpressions = newExpressions.removeElement(idx)
+                    newColors = newColors.removeElement(idx)
+                    newErrors = newErrors.removeElement(idx)
+                }
+                
+                setState(s.copy(
+                    fieldsInput = newFieldsInput,
+                    expressions = newExpressions,
+                    colors = newColors,
+                    errors = newErrors,
+                    isSelectedIndexes = emptySet(),
+                    colorToBeEditedForIndex = -1
+                ))
             }
         }
     }

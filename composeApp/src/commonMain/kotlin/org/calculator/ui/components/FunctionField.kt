@@ -3,13 +3,12 @@ package org.calculator.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material3.*
@@ -21,29 +20,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import calculatorsuite.composeapp.generated.resources.Res
-import calculatorsuite.composeapp.generated.resources.select_24px
 import org.calculator.models.SidePanelAction
-import org.calculator.ui.utils.HSpacer
-import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun FunctionField(
+    modifier: Modifier = Modifier,
     label: String = "y = f(x)",
     action: SidePanelAction = SidePanelAction.COLOR,
     color: Color = Color.Red,
     value: String,
     error: String? = null,
+    isSelected: Boolean = false,
     onValueChange: (String) -> Unit,
-    onActionButtonClick: () -> Unit = {},
+    onColorButtonClick: () -> Unit = {},
+    onSelectButtonClick: () -> Unit = {},
+    onDragButtonClick: () -> Unit = {},
     onClearClick: () -> Unit = {}
 ) {
     val isFocused = remember { mutableStateOf(false) }
     
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp),
         shape = RoundedCornerShape(16.dp),
@@ -75,14 +73,16 @@ fun FunctionField(
                                     .fillMaxSize()
                                     .clip(CircleShape)
                                     .background(color)
-                                    .clickable { onActionButtonClick() }
+                                    .clickable { onColorButtonClick() }
                                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                             )
                         }
                         SidePanelAction.SELECT -> {
-                            IconButton(onClick = {}) {
+                            IconButton(onClick = {
+                                onSelectButtonClick()
+                            }) {
                                 Icon(
-                                    painter = painterResource(Res.drawable.select_24px),
+                                    imageVector = if (isSelected) Icons.Filled.CheckBox else Icons.Filled.CheckBoxOutlineBlank,
                                     contentDescription = "Select",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

@@ -6,13 +6,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import org.calculator.ui.utils.ArcExpression
 import org.calculator.ui.utils.ExpressionType
 import org.calculator.ui.utils.Vector
-import kotlin.math.PI
-import kotlin.math.abs
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.hypot
-import kotlin.math.sin
-import kotlin.math.sqrt
+import kotlin.math.*
 import kotlin.random.Random
 
 // ---------------------------------------------------------------------------
@@ -150,7 +144,7 @@ fun calculateIntegral(
  *
  * Order of checks matters — more specific patterns are tested first to avoid
  * false positives (e.g. parametric is gated on the explicit "r(t)=" prefix
- * OR a parenthesised pair that contains exactly one comma and no "=" to
+ * OR a parenthesized pair that contains exactly one comma and no "=" to
  * prevent points and implicit equations from being mis-classified).
  */
 fun formulaToExpressionType(formula: String): ExpressionType {
@@ -209,7 +203,7 @@ fun parseArc(formula: String): ArcExpression {
     // arc((cx,cy),r,start,sweep)
     val content = formula.trim()
         .removePrefix("arc(").removeSuffix(")")
-    // Remove inner parens that wrap the centre point
+    // Remove inner parens that wrap the center point
     val flat = content.replace("(", "").replace(")", "")
     val parts = flat.split(",").map { it.trim().toFloat() }
     require(parts.size == 5) { "arc() needs 5 numbers: cx,cy,r,start,sweep — got ${parts.size}" }
@@ -309,10 +303,17 @@ fun vecSum(vectors: List<Vector>, index: Int): Float =
 fun <T> List<T>.removeElement(index: Int): List<T> =
     subList(0, index) + subList(index + 1, size)
 
+fun <T> List<T>.moveElement(fromIndex: Int, toIndex: Int): List<T> {
+    if (fromIndex == toIndex) return this
+    val item = this[fromIndex]
+    val listWithoutItem = this.toMutableList().apply { removeAt(fromIndex) }
+    return listWithoutItem.apply { add(toIndex, item) }.toList()
+}
+
 fun Float.toRadians(): Float = (this * (PI / 180f)).toFloat()
 
 /**
- * Returns a random, visually distinguishable colour.
+ * Returns a random, visually distinguishable color.
  * HSV: full saturation, random hue, value 0.65–0.90 to avoid near-black and
  * near-white outputs.
  */
