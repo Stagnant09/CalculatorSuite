@@ -12,6 +12,7 @@ sealed interface XYContract {
         val fieldsInput: List<String> = emptyList(),
         val expressions: List<Expression> = emptyList(),
         val colors: List<Color> = emptyList(),
+        val thicknesses: List<Float> = emptyList(),
         val colorToBeEditedForIndex: Int = -1,
         val isSelectedIndexes: Set<Int> = emptySet(),
         val errors: List<String?> = emptyList(),

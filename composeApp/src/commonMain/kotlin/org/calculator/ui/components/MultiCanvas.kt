@@ -26,6 +26,7 @@ import kotlin.math.*
 fun MultiCanvas(
     expressions: List<Expression>,
     colors: List<Color>,
+    thicknesses: List<Float>,
     scale: Float,
     offsetX: Float,
     offsetY: Float,
@@ -72,7 +73,17 @@ fun MultiCanvas(
 
                     plotter.setFormula(expression.formula)
                     val bitmap = plotter.evaluateBitmap(bw, bh, originX, originY, step, scale, threshold)
-                    drawPoints(bitmap, scope, originX, originY, step, scale, color, originX, originY)
+                    drawPoints(
+                        bitmap,
+                        scope,
+                        originX,
+                        originY,
+                        step,
+                        scale,
+                        color,
+                        originX,
+                        originY,
+                        radius = thicknesses.getOrElse(index) { 1.5f })
 
                     // Intersection points with all earlier Cartesian curves
                     if (index > 0) {
@@ -107,17 +118,17 @@ fun MultiCanvas(
                     val lhs = expression.lhs
                     val rhs = expression.rhs
                     val steps = 2000
-                    val uMin  = 0.0
-                    val uMax  = 4 * PI
+                    val uMin = 0.0
+                    val uMax = 4 * PI
                     var prevCanvas: Pair<Float, Float>? = null
 
                     for (i in 0..steps) {
                         val u = uMin + (uMax - uMin) * i / steps
-                        
+
                         // We need to find r such that evaluate(lhs, r, u) = evaluate(rhs, r, u)
                         // Actually, r is what we want. 
                         // If it's "2r = sin(u)", then 2*r - sin(u) = 0 => r = sin(u)/2
-                        
+
                         val r = if (lhs == "r") {
                             evalSimple(rhs, "u", u)
                         } else {
@@ -131,13 +142,20 @@ fun MultiCanvas(
                             solveForR(f)
                         }
 
-                        if (!r.isFinite()) { prevCanvas = null; continue }
+                        if (!r.isFinite()) {
+                            prevCanvas = null; continue
+                        }
                         val cx = r * cos(u)
                         val cy = r * sin(u)
                         val (px, py) = cartesianToCanvas(cx.toFloat(), cy.toFloat(), originX, originY, step, scale)
                         val cur = px to py
                         prevCanvas?.let { (lx, ly) ->
-                            scope.drawLine(color = color, start = Offset(lx, ly), end = Offset(px, py), strokeWidth = 2f)
+                            scope.drawLine(
+                                color = color,
+                                start = Offset(lx, ly),
+                                end = Offset(px, py),
+                                strokeWidth = 2f
+                            )
                         }
                         prevCanvas = cur
                     }
@@ -159,7 +177,7 @@ fun MultiCanvas(
                         scope.drawLine(
                             color = color,
                             start = Offset(originX, originY),
-                            end   = Offset(ex, ey),
+                            end = Offset(ex, ey),
                             strokeWidth = 2f
                         )
                     }
@@ -172,18 +190,25 @@ fun MultiCanvas(
                     val xExpr = expression.xFormula
                     val yExpr = expression.yFormula
                     val steps = 2000
-                    val tMin  = -2 * PI
-                    val tMax  =  2 * PI
+                    val tMin = -2 * PI
+                    val tMax = 2 * PI
                     var prevCanvas: Pair<Float, Float>? = null
 
                     for (i in 0..steps) {
-                        val t  = tMin + (tMax - tMin) * i / steps
+                        val t = tMin + (tMax - tMin) * i / steps
                         val cx = evalSimple(xExpr, "t", t)
                         val cy = evalSimple(yExpr, "t", t)
-                        if (!cx.isFinite() || !cy.isFinite()) { prevCanvas = null; continue }
+                        if (!cx.isFinite() || !cy.isFinite()) {
+                            prevCanvas = null; continue
+                        }
                         val (px, py) = cartesianToCanvas(cx.toFloat(), cy.toFloat(), originX, originY, step, scale)
                         prevCanvas?.let { (lx, ly) ->
-                            scope.drawLine(color = color, start = Offset(lx, ly), end = Offset(px, py), strokeWidth = 2f)
+                            scope.drawLine(
+                                color = color,
+                                start = Offset(lx, ly),
+                                end = Offset(px, py),
+                                strokeWidth = 2f
+                            )
                         }
                         prevCanvas = px to py
                     }
@@ -194,9 +219,9 @@ fun MultiCanvas(
                 // -----------------------------------------------------------
                 is Expression.IntegralExpression -> {
                     // Parse the integrand and evaluate with the Kotlin evaluator
-                    val funcExpr  = expression.function.trim()
-                    val a         = expression.lowerLimit
-                    val b         = expression.upperLimit
+                    val funcExpr = expression.function.trim()
+                    val a = expression.lowerLimit
+                    val b = expression.upperLimit
                     if (a.isFinite() && b.isFinite()) {
                         val steps = 800
                         val lo = minOf(a, b)
@@ -212,8 +237,9 @@ fun MultiCanvas(
                         xValues.zip(yValues).forEach { (x, y) ->
                             if (y.isFinite()) {
                                 val (px, py) = cartesianToCanvas(x, y, originX, originY, step, scale)
-                                if (!started) { path.moveTo(px, py); started = true }
-                                else path.lineTo(px, py)
+                                if (!started) {
+                                    path.moveTo(px, py); started = true
+                                } else path.lineTo(px, py)
                             }
                         }
                         if (started) {
@@ -232,7 +258,12 @@ fun MultiCanvas(
                             if (y.isFinite()) {
                                 val cur = cartesianToCanvas(x, y, originX, originY, step, scale)
                                 prev?.let { (lx, ly) ->
-                                    scope.drawLine(color = color, start = Offset(lx, ly), end = Offset(cur.first, cur.second), strokeWidth = 2f)
+                                    scope.drawLine(
+                                        color = color,
+                                        start = Offset(lx, ly),
+                                        end = Offset(cur.first, cur.second),
+                                        strokeWidth = 2f
+                                    )
                                 }
                                 prev = cur
                             } else prev = null
@@ -256,10 +287,25 @@ fun MultiCanvas(
                 // -----------------------------------------------------------
                 is Expression.VectorExpression -> {
                     val (ex, ey) = cartesianToCanvas(expression.x, expression.y, originX, originY, step, scale)
-                    scope.drawLine(color = color, start = Offset(originX, originY), end = Offset(ex, ey), strokeWidth = 3f)
+                    scope.drawLine(
+                        color = color,
+                        start = Offset(originX, originY),
+                        end = Offset(ex, ey),
+                        strokeWidth = 3f
+                    )
                     val arrow = arrowHeadPoints(ex, ey, originX, originY)
-                    scope.drawLine(color = color, start = Offset(ex, ey), end = Offset(arrow[0], arrow[1]), strokeWidth = 3f)
-                    scope.drawLine(color = color, start = Offset(ex, ey), end = Offset(arrow[2], arrow[3]), strokeWidth = 3f)
+                    scope.drawLine(
+                        color = color,
+                        start = Offset(ex, ey),
+                        end = Offset(arrow[0], arrow[1]),
+                        strokeWidth = 3f
+                    )
+                    scope.drawLine(
+                        color = color,
+                        start = Offset(ex, ey),
+                        end = Offset(arrow[2], arrow[3]),
+                        strokeWidth = 3f
+                    )
                 }
 
                 // -----------------------------------------------------------
@@ -270,13 +316,13 @@ fun MultiCanvas(
                     val (cx, cy) = cartesianToCanvas(arc.x, arc.y, originX, originY, step, scale)
                     val r = arc.r * step * scale
                     scope.drawArc(
-                        color       = color,
-                        startAngle  = -arc.start,
-                        sweepAngle  = -arc.sweep,
-                        useCenter   = false,
-                        topLeft     = Offset(cx - r, cy - r),
-                        size        = Size(r * 2, r * 2),
-                        style       = Stroke(width = 2f)
+                        color = color,
+                        startAngle = -arc.start,
+                        sweepAngle = -arc.sweep,
+                        useCenter = false,
+                        topLeft = Offset(cx - r, cy - r),
+                        size = Size(r * 2, r * 2),
+                        style = Stroke(width = 2f)
                     )
                 }
 
@@ -303,7 +349,8 @@ fun MultiCanvas(
                             scope.drawPath(path, color.copy(alpha = 0.28f), style = Fill)
                             scope.drawPath(path, color, style = Stroke(2f))
                         }
-                    } catch (_: Exception) {}
+                    } catch (_: Exception) {
+                    }
                 }
             }
         }
@@ -311,29 +358,29 @@ fun MultiCanvas(
 
     Box(modifier = Modifier.fillMaxSize()) {
         CartesianGridCanvas(
-            scale          = scale,
-            offsetX        = offsetX,
-            offsetY        = offsetY,
-            step           = step,
-            onPan          = { dx, dy -> onViewportChange(scale, offsetX + dx, offsetY + dy) },
-            onZoom         = { factor, focalX, focalY ->
-                val newScale  = (scale * factor).coerceIn(0.1f, 100f)
+            scale = scale,
+            offsetX = offsetX,
+            offsetY = offsetY,
+            step = step,
+            onPan = { dx, dy -> onViewportChange(scale, offsetX + dx, offsetY + dy) },
+            onZoom = { factor, focalX, focalY ->
+                val newScale = (scale * factor).coerceIn(0.1f, 100f)
                 // Zoom toward the focal point (mouse cursor)
                 val newOffsetX = focalX + (offsetX - focalX) * (newScale / scale)
                 val newOffsetY = focalY + (offsetY - focalY) * (newScale / scale)
                 onViewportChange(newScale, newOffsetX, newOffsetY)
             },
-            onResetView    = { onViewportChange(1f, 0f, 0f) },
-            drawExtra      = drawExtra,
-            onCursorMoved  = { canvasX, canvasY, originX, originY ->
+            onResetView = { onViewportChange(1f, 0f, 0f) },
+            drawExtra = drawExtra,
+            onCursorMoved = { canvasX, canvasY, originX, originY ->
                 cursorPos.value = canvasToCartesian(canvasX, canvasY, originX, originY, step, scale)
             }
         )
         Text(
-            text     = label,
+            text = label,
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-            style    = MaterialTheme.typography.labelMedium,
-            color    = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
     }
 }

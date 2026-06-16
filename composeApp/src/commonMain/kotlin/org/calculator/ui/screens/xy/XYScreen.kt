@@ -5,7 +5,6 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
@@ -31,7 +30,7 @@ import org.calculator.ui.components.AddGraphDialog
 import org.calculator.ui.components.CircularColorPicker
 import org.calculator.ui.components.FunctionField
 import org.calculator.ui.components.MultiCanvas
-import org.calculator.ui.screens.options.OptionsScreen
+import org.calculator.ui.screens.options.OptionsDialog
 import org.calculator.ui.utils.VSpacer
 import org.jetbrains.compose.resources.painterResource
 
@@ -275,6 +274,7 @@ fun XYScreen(viewModel: XYViewmodel) {
                     scale           = state.scale,
                     offsetX         = state.offsetX,
                     offsetY         = state.offsetY,
+                    thicknesses     = state.thicknesses,
                     onViewportChange = { scale, offsetX, offsetY ->
                         viewModel.setEvent(XYContract.Event.UpdateViewport(scale, offsetX, offsetY))
                     }
@@ -314,7 +314,7 @@ fun XYScreen(viewModel: XYViewmodel) {
     }
 
     if (showOptionsDialog.value) {
-        OptionsScreen(
+        OptionsDialog(
             onDismiss = { showOptionsDialog.value = false }
         )
     }
