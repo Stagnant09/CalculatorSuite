@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,27 +13,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.ZoomOut
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -40,311 +33,209 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** This composable is a canvas that draws a Cartesian grid
- * with labels and zoom-in/zoom-out buttons
+/**
+ * Draws a pannable/zoomable Cartesian grid.
+ *
+ * Caller supplies:
+ *   [onPan]         – called with pixel delta (dx, dy)
+ *   [onZoom]        – called with (scaleFactor, focalCanvasX, focalCanvasY)
+ *   [onResetView]   – reset to default viewport
+ *   [drawExtra]     – additional drawing on top of the grid
+ *   [onCursorMoved] – reports (canvasX, canvasY, originX, originY)
  */
 @Composable
 fun CartesianGridCanvas(
-    scale: Float,
-    offsetX: Float,
-    offsetY: Float,
-    step: Float,
-    onPan: (Float, Float) -> Unit,
-    onZoomIn: (Float) -> Unit,
-    onZoomOut: (Float) -> Unit,
-    onResetView: () -> Unit,
-    onTap: (Float, Float, Float, Float) -> Unit,
-    onDragStart: (Float, Float, Float, Float) -> Unit,
-    onDragEnd: () -> Unit,
-    onDrag: (Float, Float, Float, Float) -> Unit,
-    drawExtra: (DrawScope, Float, Float) -> Unit,
-    pointerInputExtra: (Float, Float) -> Unit = { _, _ -> }
+    scale:        Float,
+    offsetX:      Float,
+    offsetY:      Float,
+    step:         Float,
+    onPan:        (Float, Float) -> Unit,
+    onZoom:       (factor: Float, focalX: Float, focalY: Float) -> Unit,
+    onResetView:  () -> Unit,
+    drawExtra:    (DrawScope, Float, Float) -> Unit,
+    onCursorMoved:(canvasX: Float, canvasY: Float, originX: Float, originY: Float) -> Unit = { _, _, _, _ -> }
 ) {
     val textMeasurer = rememberTextMeasurer()
     val baseTextStyle = TextStyle(
-        color = Color.DarkGray,
-        fontSize = 16.sp,
+        color     = Color.DarkGray,
+        fontSize  = 12.sp,
         textAlign = TextAlign.Center
     )
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .pointerInput(Unit) {
+            // Track cursor position
+            .pointerInput(offsetX, offsetY, scale) {
                 awaitPointerEventScope {
                     while (true) {
                         val event = awaitPointerEvent()
-                        pointerInputExtra(
-                            event.changes.first().position.x,
-                            event.changes.first().position.y
-                        )
+                        val pos = event.changes.firstOrNull()?.position ?: continue
+                        val originX = size.width  / 2f + offsetX
+                        val originY = size.height / 2f + offsetY
+                        onCursorMoved(pos.x, pos.y, originX, originY)
                     }
                 }
             }
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { pos ->
-                        val originX = (size.width / 2f) + offsetX
-                        val originY = size.height / 2f + offsetY
-                        onTap(pos.x, pos.y, originX, originY)
-                    },
-                    onDoubleTap = {
-                        onResetView()
+            // Pinch-to-zoom + two-finger pan
+            .pointerInput(offsetX, offsetY, scale) {
+                detectTransformGestures { centroid, pan, zoom, _ ->
+                    if (zoom != 1f) {
+                        // centroid is relative to the composable, not the graph origin
+                        onZoom(zoom, centroid.x - size.width / 2f, centroid.y - size.height / 2f)
                     }
-                )
+                    if (pan != Offset.Zero) onPan(pan.x, pan.y)
+                }
             }
+            // Single-finger drag (pan)
             .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = { pos ->
-                        val originX = size.width / 2f + offsetX
-                        val originY = size.height / 2f + offsetY
-                        onDragStart(pos.x, pos.y, originX, originY)
-                    },
-                    onDragEnd = {
-                        onDragEnd()
-                    },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-
-                        val originX = size.width / 2f + offsetX
-                        val originY = size.height / 2f + offsetY
-
-                        onDrag(
-                            change.position.x,
-                            change.position.y,
-                            originX,
-                            originY
-                        )
-
-                        onPan(dragAmount.x, dragAmount.y)
-                    }
-                )
+                detectDragGestures { change, dragAmount ->
+                    change.consume()
+                    onPan(dragAmount.x, dragAmount.y)
+                }
             }
-
+            // Double-tap → reset
+            .pointerInput(Unit) {
+                detectTapGestures(onDoubleTap = { onResetView() })
+            }
     ) {
-        Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                /*.graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    translationX = offsetX
-                    translationY = offsetY
-                }*/
-        ) {
-            val nativeCanvas = drawContext.canvas.nativeCanvas
-            val originX = size.width / 2f + offsetX
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val originX = size.width  / 2f + offsetX
             val originY = size.height / 2f + offsetY
 
-            // Calculate visible range in graph coordinates
-            val scale = scale
-            val minX = (-originX - offsetX) / (step * scale)
-            val maxX = (size.width - originX - offsetX) / (step * scale)
-            val minY = (originY + offsetY - size.height) / (step * scale)
-            val maxY = (originY + offsetY) / (step * scale)
+            // Visible graph-coordinate range
+            val minX = -originX / (step * scale)
+            val maxX = (size.width  - originX) / (step * scale)
+            val minY = (originY - size.height) / (step * scale)
+            val maxY =  originY / (step * scale)
 
-            // Calculate grid line step based on zoom level
-            val gridStep = when {
-                scale > 5f -> 0.5f
-                scale > 2f -> 1f
-                scale > 0.5f -> 2f
-                else -> 5f
+            // Adaptive grid step (in graph units)
+            val gridStep: Float = when {
+                scale > 20f -> 0.1f
+                scale > 10f -> 0.2f
+                scale > 5f  -> 0.5f
+                scale > 2f  -> 1f
+                scale > 0.5f-> 2f
+                scale > 0.2f-> 5f
+                else        -> 10f
             }
 
-            // Draw vertical grid lines
-            val startX = (minX / gridStep).toInt() * gridStep - gridStep
-            val endX = maxX + gridStep * 2
-            var x1 = startX
-            while (x1 <= endX) {
-                val xPos = originX + x1 * step * scale
+            // --- Vertical grid lines ---
+            val startX  = (minX / gridStep).toInt() * gridStep - gridStep
+            val endX    = maxX + gridStep * 2
+            var gx = startX
+            while (gx <= endX) {
+                val xPos = originX + gx * step * scale
                 if (xPos in -100f..(size.width + 100)) {
+                    val isInteger = gx.toInt().toFloat() == gx
                     drawLine(
-                        color = Color.DarkGray.copy(
-                            alpha = if (x1.toInt().toFloat() == x1) 0.5f else 0.2f
-                        ),
-                        start = Offset(xPos, 0f),
-                        end = Offset(xPos, size.height),
-                        strokeWidth = if (x1.toInt().toFloat() == x1) 1f else 0.5f
+                        color       = Color.DarkGray.copy(alpha = if (isInteger) 0.4f else 0.15f),
+                        start       = Offset(xPos, 0f),
+                        end         = Offset(xPos, size.height),
+                        strokeWidth = if (isInteger) 1f else 0.5f
                     )
                 }
-                x1 += gridStep
+                gx += gridStep
             }
 
-            // Draw horizontal grid lines
+            // --- Horizontal grid lines ---
             val startY = (minY / gridStep).toInt() * gridStep - gridStep
-            val endY = maxY + gridStep * 2
-            var y1 = startY
-            while (y1 <= endY) {
-                val yPos = originY - y1 * step * scale
+            val endY   = maxY + gridStep * 2
+            var gy = startY
+            while (gy <= endY) {
+                val yPos = originY - gy * step * scale
                 if (yPos in -100f..(size.height + 100)) {
+                    val isInteger = gy.toInt().toFloat() == gy
                     drawLine(
-                        color = Color.DarkGray.copy(
-                            alpha = if (y1.toInt().toFloat() == y1) 0.5f else 0.2f
-                        ),
-                        start = Offset(0f, yPos),
-                        end = Offset(size.width, yPos),
-                        strokeWidth = if (y1.toInt().toFloat() == y1) 1f else 0.5f
+                        color       = Color.DarkGray.copy(alpha = if (isInteger) 0.4f else 0.15f),
+                        start       = Offset(0f, yPos),
+                        end         = Offset(size.width, yPos),
+                        strokeWidth = if (isInteger) 1f else 0.5f
                     )
                 }
-                y1 += gridStep
+                gy += gridStep
             }
 
-            // --- Draw axes ---
-            // X-axis
-            drawLine(
-                Color.Black,
-                Offset(0f, originY),
-                Offset(size.width, originY),
-                strokeWidth = 2f * scale.coerceIn(0.5f, 2f)
-            )
+            // --- Axes (drawn ONCE) ---
+            val axisWidth = 2f * scale.coerceIn(0.5f, 2f)
+            drawLine(Color.Black, Offset(0f, originY), Offset(size.width, originY), axisWidth)
+            drawLine(Color.Black, Offset(originX, 0f), Offset(originX, size.height), axisWidth)
 
-            // Y-axis
-            drawLine(
-                Color.Black,
-                Offset(originX, 0f),
-                Offset(originX, size.height),
-                strokeWidth = 2f * scale.coerceIn(0.5f, 2f)
-            )
+            // --- Axis labels ---
+            val scaledStyle = baseTextStyle.copy(fontSize = (12f * scale.coerceIn(0.5f, 2f)).sp)
 
-            // --- Draw axis labels ---
             // X-axis labels
-            var x = startX
-            while (x <= endX) {
-                if (x.toInt().toFloat() == x && x != 0f) {
-                    val xPos = originX + x * step * scale
-                    if (xPos in -100f..size.width - 100f) {
-                        val text = x.toInt().toString()
-                        val scaledTextStyle = baseTextStyle.copy(
-                            fontSize = (16f * scale.coerceIn(0.5f, 2f)).sp
+            gx = startX
+            while (gx <= endX) {
+                if (gx.toInt().toFloat() == gx && gx != 0f) {
+                    val xPos = originX + gx * step * scale
+                    if (xPos in 0f..size.width) {
+                        val text = gx.toInt().toString()
+                        val measured = textMeasurer.measure(text, scaledStyle, maxLines = 1)
+                        val ty = (originY + 6f * scale.coerceIn(0.5f, 2f))
+                            .coerceIn(0f, size.height - measured.size.height)
+                        drawText(
+                            textMeasurer, text,
+                            topLeft = Offset(xPos - measured.size.width / 2f, ty),
+                            style = scaledStyle
                         )
-                        val textLayoutResult = textMeasurer.measure(
-                            text = text,
-                            style = scaledTextStyle,
-                            maxLines = 1
-                        )
-                        val textOffset = Offset(
-                            xPos - textLayoutResult.size.width / 2,
-                            originY + 20f * scale.coerceIn(0.5f, 2f)
-                        )
-                        
-                        if (textOffset.x in -100f..(size.width + 100) && 
-                            textOffset.y in -100f..(size.height + 100)) {
-                            drawText(
-                                textMeasurer = textMeasurer,
-                                text = text,
-                                style = scaledTextStyle,
-                                topLeft = textOffset
-                            )
-                        }
-                        // Using Compose's drawText for X-axis labels
                     }
                 }
-                x += gridStep
+                gx += gridStep
             }
 
             // Y-axis labels
-            var y = startY
-            while (y <= endY) {
-                if (y.toInt().toFloat() == y && y != 0f) {
-                    val yPos = originY - y * step * scale
-                    if (yPos in -(size.height - 100f)..size.height - 100f) {
-                        val text = y.toInt().toString()
-                        val scaledTextStyle = baseTextStyle.copy(
-                            fontSize = (16f * scale.coerceIn(0.5f, 2f)).sp
+            gy = startY
+            while (gy <= endY) {
+                if (gy.toInt().toFloat() == gy && gy != 0f) {
+                    val yPos = originY - gy * step * scale
+                    if (yPos in 0f..size.height) {
+                        val text = gy.toInt().toString()
+                        val measured = textMeasurer.measure(text, scaledStyle, maxLines = 1)
+                        val tx = (originX - measured.size.width - 6f * scale.coerceIn(0.5f, 2f))
+                            .coerceAtLeast(0f)
+                        drawText(
+                            textMeasurer, text,
+                            topLeft = Offset(tx, yPos - measured.size.height / 2f),
+                            style = scaledStyle
                         )
-                        val textLayoutResult = textMeasurer.measure(
-                            text = text,
-                            style = scaledTextStyle,
-                            maxLines = 1
-                        )
-                        val textOffset = Offset(
-                            (originX - 24f * scale).coerceAtLeast(0f),
-                            yPos + textLayoutResult.size.height / 2
-                        )
-                        
-                        if (textOffset.x in -100f..(size.width + 100) && 
-                            textOffset.y in -100f..(size.height + 100)) {
-                            drawText(
-                                textMeasurer = textMeasurer,
-                                text = text,
-                                style = scaledTextStyle,
-                                topLeft = textOffset
-                            )
-                        }
                     }
                 }
-                y += gridStep
+                gy += gridStep
             }
 
-            // --- Draw axes ---
-            // X-axis
-            drawLine(
-                Color.Black,
-                Offset(0f, originY),
-                Offset(size.width, originY),
-                strokeWidth = 2f * scale.coerceIn(0.5f, 2f)
-            )
-
-            // Y-axis
-            drawLine(
-                Color.Black,
-                Offset(originX, 0f),
-                Offset(originX, size.height),
-                strokeWidth = 2f * scale.coerceIn(0.5f, 2f)
-            )
-
-            // Origin label
-            if (originX in -50f..50f && originY in -50f..50f) {
+            // Origin label — only show when origin is close to centre
+            if (originX in 20f..(size.width - 20f) && originY in 20f..(size.height - 20f)) {
                 drawText(
-                    textMeasurer = textMeasurer,
-                    text = "O",
-                    style = baseTextStyle.copy(
-                        fontSize = (16f * scale.coerceIn(0.5f, 2f)).sp
-                    ),
-                    topLeft = Offset(
-                        originX - 16f * scale,
-                        originY + 24f * scale
-                    )
+                    textMeasurer, "O",
+                    topLeft = Offset(originX + 4f, originY + 4f),
+                    style = scaledStyle
                 )
             }
 
+            // --- Custom content (functions, plots, …) ---
             drawExtra(this, originX, originY)
         }
-        // Zoom controls
+
+        // --- On-canvas zoom / reset buttons ---
         Column(
             modifier = Modifier
                 .padding(16.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
-                .padding(8.dp)
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.75f))
+                .padding(4.dp)
         ) {
-            // Zoom in button
-            IconButton(
-                onClick = {
-                    onZoomIn(2f)
-                },
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(Icons.Default.ZoomIn, contentDescription = "Zoom In")
+            IconButton(onClick = { onZoom(2f, 0f, 0f) }, modifier = Modifier.size(44.dp)) {
+                Icon(Icons.Default.ZoomIn,  contentDescription = "Zoom In")
             }
-
-            // Zoom out button
-            IconButton(
-                onClick = {
-                    onZoomOut(0.5f)
-                },
-                modifier = Modifier.size(48.dp)
-            ) {
+            IconButton(onClick = { onZoom(0.5f, 0f, 0f) }, modifier = Modifier.size(44.dp)) {
                 Icon(Icons.Default.ZoomOut, contentDescription = "Zoom Out")
             }
-
-            // Reset view button
-            TextButton(
-                onClick = {
-                    onResetView()
-                },
-                modifier = Modifier.size(48.dp)
+            IconButton(
+                onClick  = { onResetView() },
+                modifier = Modifier.size(44.dp)
             ) {
-                Text("1:1", fontSize = 12.sp, textAlign = TextAlign.Center)
+                Icon(Icons.Filled.RestartAlt, contentDescription = "Reset View", modifier = Modifier.size(20.dp))
             }
         }
     }

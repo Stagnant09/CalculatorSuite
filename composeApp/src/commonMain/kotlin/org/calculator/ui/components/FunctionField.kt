@@ -12,10 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DragIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,94 +35,113 @@ fun FunctionField(
     action: SidePanelAction = SidePanelAction.COLOR,
     color: Color = Color.Red,
     value: String,
+    error: String? = null,
     onValueChange: (String) -> Unit,
     onActionButtonClick: () -> Unit = {},
     onClearClick: () -> Unit = {}
 ) {
     val isFocused = remember { mutableStateOf(false) }
-    Row(
+    
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(74.dp)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = if (isFocused.value) 8.dp else 1.dp,
+        shadowElevation = if (isFocused.value) 2.dp else 0.dp
     ) {
-        when (action) {
-            SidePanelAction.COLOR -> {
+        Column(
+            modifier = Modifier
+                .padding(8.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Action Icon (Color or Other)
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(color)
-                        .clickable { onActionButtonClick() }
-                        .border(1.dp, Color.Gray, CircleShape)
+                        .size(40.dp)
+                        .padding(4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when (action) {
+                        SidePanelAction.COLOR -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .clickable { onActionButtonClick() }
+                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                            )
+                        }
+                        SidePanelAction.SELECT -> {
+                            IconButton(onClick = {}) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.select_24px),
+                                    contentDescription = "Select",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        SidePanelAction.DRAG -> {
+                            IconButton(onClick = {}) {
+                                Icon(
+                                    imageVector = Icons.Filled.DragIndicator,
+                                    contentDescription = "Drag",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Text field for function input
+                TextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    modifier = Modifier
+                        .weight(1f)
+                        .onFocusChanged { focusState ->
+                            isFocused.value = focusState.isFocused
+                        },
+                    placeholder = { Text(label, style = MaterialTheme.typography.bodyMedium) },
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                    ),
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                    trailingIcon = {
+                        if (value.isNotEmpty()) {
+                            IconButton(onClick = onClearClick) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Clear",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
                 )
             }
-            SidePanelAction.SELECT -> {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                ){
-                    IconButton(
-                        onClick = {}
-                    ){
-                        Icon(
-                            painter = painterResource(Res.drawable.select_24px),
-                            contentDescription = "Select"
-                        )
-                    }
-                }
-            }
-            SidePanelAction.DRAG -> {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                ){
-                    IconButton(
-                        onClick = {}
-                    ){
-                        Icon(
-                            imageVector = Icons.Filled.DragIndicator,
-                            contentDescription = "Select"
-                        )
-                    }
-                }
+            if (error != null) {
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(start = 48.dp, bottom = 4.dp)
+                )
             }
         }
-
-        HSpacer(12)
-
-        // 🧮 Text field for function input
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier
-                .weight(1f)
-                .onFocusChanged { focusState ->
-                    isFocused.value = focusState.isFocused
-                },
-            label = { Text(label) },
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            trailingIcon = {
-                if (isFocused.value) {
-                    Icon(
-                        imageVector = Icons.Default.Clear,
-                        contentDescription = "Remove function",
-                        tint = color,
-                        modifier = Modifier
-                            .combinedClickable(
-                                onClick = { onClearClick() }
-                            )
-                            .pointerInput(Unit) {
-                                detectTapGestures {
-                                    onClearClick()
-                                }
-                            }
-                            .padding(8.dp)
-                    )
-                }
-            }
-        )
     }
 }

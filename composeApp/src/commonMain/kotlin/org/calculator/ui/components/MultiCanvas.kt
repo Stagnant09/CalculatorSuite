@@ -3,6 +3,7 @@ package org.calculator.ui.components
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -10,365 +11,315 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import org.calculator.nativeLib.ImplicitPlotter
 import org.calculator.ui.utils.Expression
 import org.calculator.ui.utils.Vector
 import org.calculator.utils.*
-import kotlin.math.atan2
-import kotlin.math.roundToInt
+import kotlin.math.*
 
 @Composable
 fun MultiCanvas(
     expressions: List<Expression>,
-    colors: List<Color>
+    colors: List<Color>,
+    scale: Float,
+    offsetX: Float,
+    offsetY: Float,
+    onViewportChange: (Float, Float, Float) -> Unit
 ) {
-    // State for scale and offset
-    var scale by remember { mutableStateOf(1f) }
-    var offsetX by remember { mutableStateOf(0f) }
-    var offsetY by remember { mutableStateOf(0f) }
-    val cursorX = remember { mutableStateOf(0f) }
-    val cursorY = remember { mutableStateOf(0f) }
-    val currentPos = remember { mutableStateOf(Pair(0f, 0f)) }
-    val label = "(${currentPos.value.first}, ${currentPos.value.second})"
-    // Grid step (distance between grid lines in pixels at scale 1.0)
     val step = 40f
 
-    // Handle panning
-    val onPan = { dx: Float, dy: Float ->
-        offsetX += dx
-        offsetY += dy
+    // -----------------------------------------------------------------------
+    // Hoist ImplicitPlotter outside the draw lambda so it is not re-created
+    // on every frame.  One instance is sufficient for the JVM target; the
+    // native library itself holds global state per-formula slot.
+    // -----------------------------------------------------------------------
+    val plotter = remember { ImplicitPlotter() }
+
+    val cursorPos = remember { mutableStateOf(Pair(0f, 0f)) }
+
+    val label = remember(cursorPos.value) {
+        val (cx, cy) = cursorPos.value
+        val fx = (cx * 100).roundToLong() / 100f
+        val fy = (cy * 100).roundToLong() / 100f
+        "($fx, $fy)"
     }
 
-    // Handle zooming
-    val onZoomIn: (Float) -> Unit = { factor ->
-        scale = (scale * factor).coerceIn(0.1f, 10f)
-    }
-
-    val onZoomOut: (Float) -> Unit = { factor ->
-        scale = (scale * factor).coerceIn(0.1f, 10f)
-    }
-
-    // Reset view
-    val onResetView = {
-        scale = 1f
-        offsetX = 0f
-        offsetY = 0f
-    }
-
-    // Handle tap
-    val onTap = { x: Float, y: Float, originX: Float, originY: Float ->
-        // Convert screen coordinates to graph coordinates
-        val graphX = ((x - originX) / (step * scale)).roundToInt().toFloat()
-        val graphY = -((y - originY) / (step * scale)).roundToInt().toFloat()
-        println("Tapped at graph coordinates: ($graphX, $graphY)")
-    }
-
-    // Handle drag
-    var isDragging by remember { mutableStateOf(false) }
-
-    val onDragStart = { x: Float, y: Float, originX: Float, originY: Float ->
-        isDragging = true
-    }
-
-    val onDragEnd = {
-        isDragging = false
-    }
-
-    val onDrag = { x: Float, y: Float, originX: Float, originY: Float ->
-        if (isDragging) {
-            // Handle dragging logic here if needed
-        }
-    }
-
-    // Custom drawing function for the grid
+    // -----------------------------------------------------------------------
+    // drawExtra — called inside Canvas{} with the computed origin
+    // -----------------------------------------------------------------------
     val drawExtra: (DrawScope, Float, Float) -> Unit = { scope, originX, originY ->
+
         expressions.forEachIndexed { index, expression ->
+            val color = colors.getOrElse(index) { Color.Gray }
+
             when (expression) {
+                // -----------------------------------------------------------
+                // Cartesian (explicit, vertical, implicit) — native C++ path
+                // -----------------------------------------------------------
                 is Expression.CartesianYXExpression,
                 is Expression.CartesianXExpression,
-                is Expression.CartesianImplicitExpression,
-                     -> {
-                    val plotter = ImplicitPlotter()
+                is Expression.CartesianImplicitExpression -> {
+                    val bw = scope.size.width.toInt()
+                    val bh = scope.size.height.toInt()
+                    // threshold scales with zoom so thin implicit curves stay
+                    // visible when zoomed out and don't bloat when zoomed in
+                    val threshold = (0.025f / scale.coerceAtLeast(0.5f))
+
                     plotter.setFormula(expression.formula)
-                    val bitmapWidth = 500
-                    val bitmapHeight = 500
-                    val centerX = bitmapWidth / 2f
-                    val centerY = bitmapHeight / 2f
-                    val bitmap = plotter.evaluateBitmap(
-                        width = bitmapWidth,
-                        height = bitmapHeight,
-                        originX = centerX,
-                        originY = centerY,
-                        step = step,
-                        scale = scale,
-                        threshold = 0.012f
-                    )
-                    drawPoints(
-                        points = bitmap,
-                        scope = scope,
-                        originX = originX,
-                        originY = originY,
-                        step = step,
-                        scale = scale,
-                        color = colors[index],
-                        centerX = centerX,
-                        centerY = centerY
-                    )
-                    // Find meet points w/ all previous functions
+                    val bitmap = plotter.evaluateBitmap(bw, bh, originX, originY, step, scale, threshold)
+                    drawPoints(bitmap, scope, originX, originY, step, scale, color, originX, originY)
+
+                    // Intersection points with all earlier Cartesian curves
                     if (index > 0) {
-                        for (j in 0..<index) {
-                            when (expressions[j]) {
-                                is Expression.CartesianYXExpression,
-                                is Expression.CartesianXExpression,
-                                is Expression.CartesianImplicitExpression -> {
-                                    plotter.setFormula2(expressions[j].formula)
-                                    val meetPoints = plotter.meetPoints(
-                                        width = bitmapWidth,
-                                        height = bitmapHeight,
-                                        originX = centerX,
-                                        originY = centerY,
-                                        step = step,
-                                        scale = scale,
-                                        threshold = 0.0000005f
-                                    )
-                                    drawPoints(
-                                        points = meetPoints,
-                                        scope = scope,
-                                        originX = originX,
-                                        originY = originY,
-                                        step = step,
-                                        scale = scale,
-                                        color = Color.Yellow,
-                                        centerX = centerX,
-                                        centerY = centerY,
-                                        radius = 5f,
-                                        border = 2f,
-                                        borderColor = Color.Black
-                                    )
-                                }
-                                else -> {
-                                    // Do nothing
-                                }
+                        for (j in 0 until index) {
+                            val other = expressions[j]
+                            if (other is Expression.CartesianYXExpression ||
+                                other is Expression.CartesianXExpression ||
+                                other is Expression.CartesianImplicitExpression
+                            ) {
+                                plotter.setFormula2(other.formula)
+                                val meet = plotter.meetPoints(
+                                    bw, bh, originX, originY, step, scale,
+                                    threshold = 0.0000005f
+                                )
+                                drawPoints(
+                                    meet, scope, originX, originY, step, scale,
+                                    color = Color.Yellow,
+                                    centerX = originX, centerY = originY,
+                                    radius = 5f,
+                                    border = 2f,
+                                    borderColor = Color.Black
+                                )
                             }
                         }
                     }
                 }
 
+                // -----------------------------------------------------------
+                // Polar  r = f(u)
+                // -----------------------------------------------------------
+                is Expression.PolarRUExpression -> {
+                    // Strip "r=" prefix and evaluate with the Kotlin evaluator
+                    val rhs = expression.formula
+                        .substringAfter("=").trim()
+                    val steps = 2000
+                    val uMin  = 0.0
+                    val uMax  = 4 * PI
+                    var prevCanvas: Pair<Float, Float>? = null
+
+                    for (i in 0..steps) {
+                        val u = uMin + (uMax - uMin) * i / steps
+                        val r = evalSimple(rhs, "u", u)
+                        if (!r.isFinite()) { prevCanvas = null; continue }
+                        val cx = r * cos(u)
+                        val cy = r * sin(u)
+                        val (px, py) = cartesianToCanvas(cx.toFloat(), cy.toFloat(), originX, originY, step, scale)
+                        val cur = px to py
+                        prevCanvas?.let { (lx, ly) ->
+                            scope.drawLine(color = color, start = Offset(lx, ly), end = Offset(px, py), strokeWidth = 2f)
+                        }
+                        prevCanvas = cur
+                    }
+                }
+
+                // -----------------------------------------------------------
+                // Polar  u = constant  (radial line)
+                // -----------------------------------------------------------
+                is Expression.PolarUExpression -> {
+                    val angle = expression.formula.substringAfter("=").trim().toDoubleOrNull()
+                        ?: evalSimple(expression.formula.substringAfter("=").trim(), "u", 0.0)
+                    if (angle.isFinite()) {
+                        val far = 1e4f
+                        val (ex, ey) = cartesianToCanvas(
+                            (far * cos(angle)).toFloat(),
+                            (far * sin(angle)).toFloat(),
+                            originX, originY, step, scale
+                        )
+                        scope.drawLine(
+                            color = color,
+                            start = Offset(originX, originY),
+                            end   = Offset(ex, ey),
+                            strokeWidth = 2f
+                        )
+                    }
+                }
+
+                // -----------------------------------------------------------
+                // Parametric  r(t) = (x(t), y(t))
+                // -----------------------------------------------------------
+                is Expression.ParametricExpression -> {
+                    val xExpr = expression.xFormula
+                    val yExpr = expression.yFormula
+                    val steps = 2000
+                    val tMin  = -2 * PI
+                    val tMax  =  2 * PI
+                    var prevCanvas: Pair<Float, Float>? = null
+
+                    for (i in 0..steps) {
+                        val t  = tMin + (tMax - tMin) * i / steps
+                        val cx = evalSimple(xExpr, "t", t)
+                        val cy = evalSimple(yExpr, "t", t)
+                        if (!cx.isFinite() || !cy.isFinite()) { prevCanvas = null; continue }
+                        val (px, py) = cartesianToCanvas(cx.toFloat(), cy.toFloat(), originX, originY, step, scale)
+                        prevCanvas?.let { (lx, ly) ->
+                            scope.drawLine(color = color, start = Offset(lx, ly), end = Offset(px, py), strokeWidth = 2f)
+                        }
+                        prevCanvas = px to py
+                    }
+                }
+
+                // -----------------------------------------------------------
+                // Integral — shade the area under f(x) between a and b
+                // -----------------------------------------------------------
+                is Expression.IntegralExpression -> {
+                    // Parse the integrand and evaluate with the Kotlin evaluator
+                    val funcExpr  = expression.function.trim()
+                    val a         = expression.lowerLimit
+                    val b         = expression.upperLimit
+                    if (a.isFinite() && b.isFinite()) {
+                        val steps = 800
+                        val lo = minOf(a, b)
+                        val hi = maxOf(a, b)
+                        val xValues = (0..steps).map { lo + (hi - lo) * it / steps }
+                        val yValues = xValues.map { x ->
+                            evalSimple(funcExpr, "x", x.toDouble()).toFloat()
+                        }
+
+                        // Build a filled polygon: curve on top, baseline on bottom
+                        val path = Path()
+                        var started = false
+                        xValues.zip(yValues).forEach { (x, y) ->
+                            if (y.isFinite()) {
+                                val (px, py) = cartesianToCanvas(x, y, originX, originY, step, scale)
+                                if (!started) { path.moveTo(px, py); started = true }
+                                else path.lineTo(px, py)
+                            }
+                        }
+                        if (started) {
+                            val (bx, _) = cartesianToCanvas(hi, 0f, originX, originY, step, scale)
+                            val (ax, _) = cartesianToCanvas(lo, 0f, originX, originY, step, scale)
+                            path.lineTo(bx, originY)
+                            path.lineTo(ax, originY)
+                            path.close()
+                            scope.drawPath(path, color.copy(alpha = 0.35f), style = Fill)
+                            scope.drawPath(path, color, style = Stroke(width = 2f))
+                        }
+
+                        // Also draw the integrand curve for context
+                        var prev: Pair<Float, Float>? = null
+                        xValues.zip(yValues).forEach { (x, y) ->
+                            if (y.isFinite()) {
+                                val cur = cartesianToCanvas(x, y, originX, originY, step, scale)
+                                prev?.let { (lx, ly) ->
+                                    scope.drawLine(color = color, start = Offset(lx, ly), end = Offset(cur.first, cur.second), strokeWidth = 2f)
+                                }
+                                prev = cur
+                            } else prev = null
+                        }
+                    }
+                }
+
+                // -----------------------------------------------------------
+                // Point
+                // -----------------------------------------------------------
+                is Expression.PointExpression -> {
+                    val (px, py) = cartesianToCanvas(expression.x, expression.y, originX, originY, step, scale)
+                    // White border then filled dot
+                    scope.drawCircle(Color.White, radius = 8f, center = Offset(px, py))
+                    scope.drawCircle(color, radius = 6f, center = Offset(px, py))
+                    scope.drawCircle(Color.Black, radius = 6f, center = Offset(px, py), style = Stroke(1.5f))
+                }
+
+                // -----------------------------------------------------------
+                // Vector
+                // -----------------------------------------------------------
+                is Expression.VectorExpression -> {
+                    val (ex, ey) = cartesianToCanvas(expression.x, expression.y, originX, originY, step, scale)
+                    scope.drawLine(color = color, start = Offset(originX, originY), end = Offset(ex, ey), strokeWidth = 3f)
+                    val arrow = arrowHeadPoints(ex, ey, originX, originY)
+                    scope.drawLine(color = color, start = Offset(ex, ey), end = Offset(arrow[0], arrow[1]), strokeWidth = 3f)
+                    scope.drawLine(color = color, start = Offset(ex, ey), end = Offset(arrow[2], arrow[3]), strokeWidth = 3f)
+                }
+
+                // -----------------------------------------------------------
+                // Arc
+                // -----------------------------------------------------------
                 is Expression.ArcExpression -> {
-                    val arc = parseArc(expressions[index].formula)
-
-                    val (canvasX, canvasY) = cartesianToCanvas(
-                        x = arc.x,
-                        y = arc.y,
-                        originX = originX,
-                        originY = originY,
-                        step = step,
-                        scale = scale
-                    )
-
-                    val radius = arc.r * step * scale
-
-                    val topLeft = Offset(
-                        canvasX - radius,
-                        canvasY - radius
-                    )
-
+                    val arc = parseArc(expression.formula)
+                    val (cx, cy) = cartesianToCanvas(arc.x, arc.y, originX, originY, step, scale)
+                    val r = arc.r * step * scale
                     scope.drawArc(
-                        color = colors[index],
-                        startAngle = -arc.start,
-                        sweepAngle = -arc.sweep,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = Size(radius * 2, radius * 2),
-                        style = Stroke(width = 2f)
+                        color       = color,
+                        startAngle  = -arc.start,
+                        sweepAngle  = -arc.sweep,
+                        useCenter   = false,
+                        topLeft     = Offset(cx - r, cy - r),
+                        size        = Size(r * 2, r * 2),
+                        style       = Stroke(width = 2f)
                     )
                 }
 
+                // -----------------------------------------------------------
+                // Area polygon
+                // -----------------------------------------------------------
                 is Expression.AreaExpression -> {
                     try {
-                        val points : MutableList<Vector> = mutableListOf()
-                        parseArea(expression.formula).forEach { pointString ->
-                            println(pointString)
-                            points.add(parsePoint(pointString))
+                        val pts = parseArea(expression.formula).map { parsePoint(it) }
+                        // Draw vertex dots
+                        pts.forEach { (x, y) ->
+                            val (px, py) = cartesianToCanvas(x, y, originX, originY, step, scale)
+                            scope.drawCircle(color, 4f, Offset(px, py))
                         }
-                        points.forEach { point ->
-                            val (x, y) = point
-                            val (canvasX, canvasY) = cartesianToCanvas(
-                                x = x,
-                                y = y,
-                                originX = originX,
-                                originY = originY,
-                                step = step,
-                                scale = scale
-                            )
-                            scope.drawCircle(
-                                center = Offset(canvasX, canvasY),
-                                radius = 5f,
-                                color = colors[index],
-                                style = Fill
-                            )
-                        }
-                        // Shade the area enclosed by the points
-                        if (points.size >= 3) {
-                            // Sort points to form a proper polygon (counterclockwise from centroid)
-                            val centroid = Vector(
-                                x = vecSum(points, 0) / points.size,
-                                y = vecSum(points, 1) / points.size
-                            )
-
-                            val sortedPoints = points.sortedBy { point ->
-                                atan2(point.y - centroid.y, point.x - centroid.x)
+                        if (pts.size >= 3) {
+                            val centroid = Vector(vecSum(pts, 0) / pts.size, vecSum(pts, 1) / pts.size)
+                            val sorted = pts.sortedBy { atan2(it.y - centroid.y, it.x - centroid.x) }
+                            val path = Path()
+                            sorted.forEachIndexed { i, (x, y) ->
+                                val (px, py) = cartesianToCanvas(x, y, originX, originY, step, scale)
+                                if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
                             }
-
-                            val path = Path().apply {
-                                val firstPoint = sortedPoints.first()
-                                val (startX, startY) = cartesianToCanvas(
-                                    x = firstPoint.x,
-                                    y = firstPoint.y,
-                                    originX = originX,
-                                    originY = originY,
-                                    step = step,
-                                    scale = scale
-                                )
-                                moveTo(startX, startY)
-
-                                sortedPoints.drop(1).forEach { point ->
-                                    val (x, y) = point
-                                    val (canvasX, canvasY) = cartesianToCanvas(
-                                        x = x,
-                                        y = y,
-                                        originX = originX,
-                                        originY = originY,
-                                        step = step,
-                                        scale = scale
-                                    )
-                                    lineTo(canvasX, canvasY)
-                                }
-                                close()
-                            }
-
-                            scope.drawPath(
-                                path = path,
-                                color = colors[index].copy(alpha = 0.3f),
-                                style = Fill
-                            )
+                            path.close()
+                            scope.drawPath(path, color.copy(alpha = 0.28f), style = Fill)
+                            scope.drawPath(path, color, style = Stroke(2f))
                         }
-                    }
-                    catch (e: Exception) {}
-                }
-                is Expression.IntegralExpression -> {}
-                is Expression.ParametricExpression -> {}
-                is Expression.PointExpression -> {
-                    val (x, y) = expression.formula.removeSurrounding("(", ")").split(",").map { it.trim().toFloat() }
-                    val (canvasX, canvasY) = cartesianToCanvas(
-                        x = x,
-                        y = y,
-                        originX = originX,
-                        originY = originY,
-                        step = step,
-                        scale = scale
-                    )
-                    scope.drawCircle(
-                        center = Offset(canvasX, canvasY),
-                        radius = 5f,
-                        color = colors[index],
-                        style = Fill
-                    )
-                }
-                is Expression.PolarRUExpression -> {}
-                is Expression.PolarUExpression -> {}
-                is Expression.VectorExpression -> {
-                    val vector = parseVector(expressions[index].formula)
-                    val (canvasX, canvasY) = cartesianToCanvas(
-                        x = vector.x,
-                        y = vector.y,
-                        originX = originX,
-                        originY = originY,
-                        step = step,
-                        scale = scale
-                    )
-                    scope.drawLine(
-                        start = Offset(originX, originY),
-                        end = Offset(canvasX, canvasY),
-                        color = colors[index],
-                        strokeWidth = 4f
-                    )
-                    // Draw arrowhead
-                    val arrow = arrowHeadPoints(
-                        endX = canvasX,
-                        endY = canvasY,
-                        originX = originX,
-                        originY = originY
-                    )
-
-                    scope.drawLine(
-                        start = Offset(canvasX, canvasY),
-                        end = Offset(arrow[0], arrow[1]),
-                        color = colors[index],
-                        strokeWidth = 4f
-                    )
-
-                    scope.drawLine(
-                        start = Offset(canvasX, canvasY),
-                        end = Offset(arrow[2], arrow[3]),
-                        color = colors[index],
-                        strokeWidth = 4f
-                    )
+                    } catch (_: Exception) {}
                 }
             }
-
-        }
-        // Compute cursor position in Cartesian coordinates
-        val currentPos1 = canvasToCartesian(
-            canvasX = cursorX.value,
-            canvasY = cursorY.value,
-            originX = originX,
-            originY = originY,
-            step = step,
-            scale = scale
-        )
-        currentPos.value = Pair(currentPos1.first, currentPos1.second)
-        // Convert dp/sp -> px manually for canvas
-        val paint = Paint().asFrameworkPaint().apply {
-            isAntiAlias = true
-            color = Color.Black.toArgb()
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         CartesianGridCanvas(
-            scale = scale,
-            offsetX = offsetX,
-            offsetY = offsetY,
-            step = step,
-            onPan = onPan,
-            onZoomIn = onZoomIn,
-            onZoomOut = onZoomOut,
-            onResetView = onResetView,
-            onTap = onTap,
-            onDragStart = onDragStart,
-            onDragEnd = onDragEnd,
-            onDrag = onDrag,
-            drawExtra = drawExtra,
-            pointerInputExtra = { newCursorX, newCursorY ->
-                cursorX.value = newCursorX
-                cursorY.value = newCursorY
+            scale          = scale,
+            offsetX        = offsetX,
+            offsetY        = offsetY,
+            step           = step,
+            onPan          = { dx, dy -> onViewportChange(scale, offsetX + dx, offsetY + dy) },
+            onZoom         = { factor, focalX, focalY ->
+                val newScale  = (scale * factor).coerceIn(0.1f, 100f)
+                // Zoom toward the focal point (mouse cursor)
+                val newOffsetX = focalX + (offsetX - focalX) * (newScale / scale)
+                val newOffsetY = focalY + (offsetY - focalY) * (newScale / scale)
+                onViewportChange(newScale, newOffsetX, newOffsetY)
+            },
+            onResetView    = { onViewportChange(1f, 0f, 0f) },
+            drawExtra      = drawExtra,
+            onCursorMoved  = { canvasX, canvasY, originX, originY ->
+                cursorPos.value = canvasToCartesian(canvasX, canvasY, originX, originY, step, scale)
             }
         )
-        // Draw label at a stable offset (bottom-right)
         Text(
-            text = label,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
+            text     = label,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            style    = MaterialTheme.typography.labelMedium,
+            color    = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
     }
-
 }
+
+private fun Double.roundToLong() = kotlin.math.round(this).toLong()

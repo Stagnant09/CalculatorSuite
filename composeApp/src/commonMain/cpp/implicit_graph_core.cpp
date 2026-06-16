@@ -132,45 +132,44 @@ DLL_EXPORT int ig_evaluate_bitmap(
 ) {
     if (!outBitmap) return -1;
     if (current_formula.empty()) return -2; // formula not set / compile failed
-    std::vector<int32_t> local(width * height, 0);
-    const float pixelStep = std::max(1.1f / scale, 1.0f);
-
-    for (int px = 0; px < width; px += static_cast<int>(pixelStep)) {
-        for (int py = 0; py < height; py += static_cast<int>(pixelStep)) {
+    
+    // Improved sampling: we evaluate every pixel if threshold is small or zoom is high
+    // The previous pixelStep logic was causing dotted lines.
+    
+    for (int py = 0; py < height; ++py) {
+        for (int px = 0; px < width; ++px) {
             double worldX = (px - originX) / (step * scale);
             double worldY = (originY - py) / (step * scale);
             float f = evaluate_function(worldX, worldY);
             if (std::fabs(f) < threshold) {
-                local[py * width + px] = 1;
+                outBitmap[py * width + px] = 1;
+            } else {
+                outBitmap[py * width + px] = 0;
             }
         }
     }
 
-    // copy to caller buffer
-    std::copy(local.begin(), local.end(), outBitmap);
     return 0;
 }
 
 DLL_EXPORT int ig_meet_points_of_f1_f2(int32_t width, int32_t height, float originX, float originY, float step, float scale, float threshold, int32_t* outBitmap) {
     if (!outBitmap) return -1;
     if (current_formula.empty() || current_formula2.empty()) return -2; // formula not set / compile failed
-    std::vector<int32_t> local(width * height, 0);
-    const float pixelStep = std::max(1.1f / scale, 1.0f);
 
-    for (int px = 0; px < width; px += static_cast<int>(pixelStep)) {
-        for (int py = 0; py < height; py += static_cast<int>(pixelStep)) {
+    for (int py = 0; py < height; ++py) {
+        for (int px = 0; px < width; ++px) {
             double worldX = (px - originX) / (step * scale);
             double worldY = (originY - py) / (step * scale);
             float f = evaluate_function(worldX, worldY);
             float f2 = evaluate_function2(worldX, worldY);
             if (std::fabs(f) < threshold && std::fabs(f2) < threshold) {
-                local[py * width + px] = 1;
+                outBitmap[py * width + px] = 1;
+            } else {
+                outBitmap[py * width + px] = 0;
             }
         }
     }
 
-    // copy to caller buffer
-    std::copy(local.begin(), local.end(), outBitmap);
     return 0;
 }
 

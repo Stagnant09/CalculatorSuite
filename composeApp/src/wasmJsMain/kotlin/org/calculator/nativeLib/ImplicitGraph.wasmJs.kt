@@ -15,4 +15,18 @@ actual class ImplicitPlotter actual constructor() {
     ): IntArray {
         TODO("Not yet implemented")
     }
+    actual fun setFormula2(formula: String) {
+    }
+
+    actual fun meetPoints(
+        width: Int,
+        height: Int,
+        originX: Float,
+        originY: Float,
+        step: Float,
+        scale: Float,
+        threshold: Float
+    ): IntArray {
+        TODO("Not yet implemented")
+    }
 }

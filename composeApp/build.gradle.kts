@@ -50,7 +50,7 @@ val buildNativeLib by tasks.registering(Exec::class) {
         "cmake",
         "-S", sourceDir.absolutePath,
         "-B", buildDir.absolutePath,
-        "-G", "Visual Studio 17 2022"
+        //"-G", "Visual Studio 17 2022"
     )
 }
 
@@ -59,18 +59,40 @@ val buildNativeRelease by tasks.registering(Exec::class) {
 
     val buildDir = layout.buildDirectory.dir("native").get().asFile
 
-    commandLine(
-        "cmake",
-        "--build", buildDir.absolutePath,
-        "--config", "Release"
-    )
+    if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+        commandLine(
+            "cmake",
+            "--build", buildDir.absolutePath,
+            "--config", "Release"
+        )
+    } else {
+        commandLine(
+            "cmake",
+            "--build", buildDir.absolutePath
+        )
+    }
 }
 
 val copyNativeLib by tasks.registering(Copy::class) {
     dependsOn(buildNativeRelease)
 
-    from("build/native/Release/implicit_graph.dll")
-    into("src/jvmMain/resources/win32-x86-64/")
+    val osName = org.gradle.internal.os.OperatingSystem.current().let {
+        when {
+            it.isWindows() -> "win32-x86-64"
+            it.isLinux() -> "linux-x86-64"
+            it.isMacOsX() -> "darwin-x86-64"
+            else -> "unknown"
+        }
+    }
+
+    val libName = if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+        "Release/implicit_graph.dll"
+    } else {
+        "libimplicit_graph.so"
+    }
+
+    from(layout.buildDirectory.dir("native/$libName"))
+    into("src/jvmMain/resources/$osName/")
 }
 
 tasks.named("jvmProcessResources") {
@@ -79,5 +101,16 @@ tasks.named("jvmProcessResources") {
 
 tasks.named("build") {
     dependsOn(copyNativeLib)
+}
+
+compose.desktop {
+    application {
+        mainClass = "org.calculator.MainKt"
+        nativeDistributions {
+            targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg, org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi, org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb)
+            packageName = "org.calculator"
+            packageVersion = "1.0.0"
+        }
+    }
 }
 

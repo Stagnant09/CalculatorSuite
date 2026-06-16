@@ -4,11 +4,13 @@ find_package(JNI REQUIRED)
 
 if(MSVC)
     add_compile_options(/bigobj)
+    set(CMAKE_C_COMPILER "cl")
+    set(CMAKE_CXX_COMPILER "cl")
+else()
+    set(CMAKE_C_COMPILER "gcc")
+    set(CMAKE_CXX_COMPILER "g++")
 endif()
 
-set(CMAKE_GENERATOR "Ninja")
-set(CMAKE_C_COMPILER "cl")
-set(CMAKE_CXX_COMPILER "cl")
 set(CMAKE_CXX_STANDARD 17)
 
 add_library(implicit_graph SHARED implicit_graph_core.cpp)

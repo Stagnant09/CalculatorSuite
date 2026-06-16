@@ -65,14 +65,7 @@ actual class ImplicitPlotter {
             return IntArray(size) { 0 }
         }
 
-        val result = IntArray(size)
-        var offset = 0L
-        for (i in 0 until size) {
-            // read 32-bit signed int little-endian
-            result[i] = mem.getInt(offset)
-            offset += 4
-        }
-        return result
+        return mem.getIntArray(0, size)
     }
 
     actual fun meetPoints(
@@ -93,13 +86,6 @@ actual class ImplicitPlotter {
             return IntArray(size) { 0 }
         }
 
-        val result = IntArray(size)
-        var offset = 0L
-        for (i in 0 until size) {
-            // read 32-bit signed int little-endian
-            result[i] = mem.getInt(offset)
-            offset += 4
-        }
-        return result
+        return mem.getIntArray(0, size)
     }
 }

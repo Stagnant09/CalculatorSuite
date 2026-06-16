@@ -12,19 +12,25 @@ sealed interface XYContract {
         val fieldsInput: List<String> = emptyList(),
         val expressions: List<Expression> = emptyList(),
         val colors: List<Color> = emptyList(),
-        val selectedFunctionIndex: Int = -1
+        val selectedFunctionIndex: Int = -1,
+        val errors: List<String?> = emptyList(),
+        val scale: Float = 1f,
+        val offsetX: Float = 0f,
+        val offsetY: Float = 0f
     ) : CustomState
 
     sealed interface Event : CustomEvent {
         data class UpdateFieldInput(val index: Int, val value: String) : Event
         data class SelectFunction(val index: Int) : Event
         data class UpdateColor(val color: Color) : Event
+        /** Adds a blank "y = x" slot */
         data object AddFunction : Event
+        /** Adds a slot pre-populated with a specific formula (from AddGraphDialog) */
+        data class AddFunctionWithFormula(val formula: String) : Event
         data class RemoveFunction(val index: Int) : Event
+        data class UpdateViewport(val scale: Float, val offsetX: Float, val offsetY: Float) : Event
+        data object ResetView : Event
     }
 
-    sealed interface Effect : CustomEffect {
-
-    }
-
+    sealed interface Effect : CustomEffect
 }

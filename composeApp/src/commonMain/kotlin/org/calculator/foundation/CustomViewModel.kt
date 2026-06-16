@@ -1,4 +1,4 @@
-package com.example.calculator.foundation
+package org.calculator.foundation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
